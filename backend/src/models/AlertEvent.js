@@ -1,0 +1,18 @@
+const mongoose = require('mongoose');
+
+const AlertEventSchema = new mongoose.Schema({
+  device_id: { type: String, required: true },
+  event_type: { type: String, required: true, enum: ['PANIC'], default: 'PANIC' },
+  location_label: { type: String, required: true },
+  timestamp_ms: { type: Number, required: true },
+  server_received_at: { type: Date, default: Date.now },
+  coordinates: {
+    latitude: { type: Number, default: null },
+    longitude: { type: Number, default: null },
+    accuracy: { type: Number, default: null },
+  },
+  acknowledged: { type: Boolean, default: false },
+  acknowledged_at: { type: Date, default: null },
+});
+
+module.exports = mongoose.model('AlertEvent', AlertEventSchema);

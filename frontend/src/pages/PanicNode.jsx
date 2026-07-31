@@ -182,7 +182,7 @@ export default function PanicNode() {
             <span className="pn-status-dot"></span>
             System Online
           </div>
-          <Link to="/dashboard" className="pn-dash-link">Security Dashboard →</Link>
+          <Link to="/login" className="pn-dash-link">Security Dashboard →</Link>
         </div>
       </header>
 

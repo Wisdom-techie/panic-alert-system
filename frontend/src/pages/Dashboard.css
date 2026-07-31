@@ -59,6 +59,24 @@
   gap: 12px;
 }
 
+.db-logout-btn {
+  padding: 8px 16px;
+  background-color: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.25);
+  border-radius: var(--radius-sm);
+  color: var(--accent-red);
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.db-logout-btn:hover {
+  background-color: var(--accent-red);
+  color: #fff;
+}
+
 .db-ws-badge {
   display: flex;
   align-items: center;

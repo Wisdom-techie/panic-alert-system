@@ -121,12 +121,21 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="db-header-right">
-          <div className={`db-ws-badge ${connected ? 'connected' : 'disconnected'}`}>
-            <span className="db-ws-dot"></span>
-            {connected ? 'Live Feed Active' : 'Reconnecting...'}
-          </div>
-          <Link to="/" className="db-node-link">← Panic Node</Link>
-        </div>
+  <div className={`db-ws-badge ${connected ? 'connected' : 'disconnected'}`}>
+    <span className="db-ws-dot"></span>
+    {connected ? 'Live Feed Active' : 'Reconnecting...'}
+  </div>
+  <Link to="/" className="db-node-link">← Panic Node</Link>
+  <button
+    className="db-logout-btn"
+    onClick={() => {
+      sessionStorage.removeItem('rsu_security_auth');
+      window.location.href = '/login';
+    }}
+  >
+    Logout
+  </button>
+</div>
       </header>
 
       {activeBanner && (

@@ -5,6 +5,11 @@ import './Dashboard.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+const HEADERS = {
+  'Content-Type': 'application/json',
+  'ngrok-skip-browser-warning': 'true',
+};
+
 function playAlertSound(audioCtxRef) {
   try {
     if (!audioCtxRef.current) {
@@ -74,7 +79,7 @@ export default function Dashboard() {
   const { connected } = useWebSocket(handleWsMessage);
 
   useEffect(() => {
-    fetch(`${API_URL}/api/alerts`)
+    fetch(`${API_URL}/api/alerts`, { headers: HEADERS })
       .then((r) => r.json())
       .then((d) => {
         if (d.success) {
@@ -88,13 +93,11 @@ export default function Dashboard() {
 
   async function handleAcknowledge(id) {
     try {
-      console.log('[ACK] Sending for ID:', id);
       const res = await fetch(`${API_URL}/api/alert/${id}/acknowledge`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: HEADERS,
       });
       const d = await res.json();
-      console.log('[ACK] Response:', d);
       if (d.success) {
         setAlerts((prev) =>
           prev.map((a) =>
@@ -104,9 +107,7 @@ export default function Dashboard() {
           )
         );
       }
-    } catch (e) {
-      console.error('[ACK] Error:', e);
-    }
+    } catch (e) { console.error(e); }
   }
 
   return (
@@ -121,21 +122,21 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="db-header-right">
-  <div className={`db-ws-badge ${connected ? 'connected' : 'disconnected'}`}>
-    <span className="db-ws-dot"></span>
-    {connected ? 'Live Feed Active' : 'Reconnecting...'}
-  </div>
-  <Link to="/" className="db-node-link">← Panic Node</Link>
-  <button
-    className="db-logout-btn"
-    onClick={() => {
-      sessionStorage.removeItem('rsu_security_auth');
-      window.location.href = '/login';
-    }}
-  >
-    Logout
-  </button>
-</div>
+          <div className={`db-ws-badge ${connected ? 'connected' : 'disconnected'}`}>
+            <span className="db-ws-dot"></span>
+            {connected ? 'Live Feed Active' : 'Reconnecting...'}
+          </div>
+          <Link to="/" className="db-node-link">← Panic Node</Link>
+          <button
+            className="db-logout-btn"
+            onClick={() => {
+              sessionStorage.removeItem('rsu_security_auth');
+              window.location.href = '/login';
+            }}
+          >
+            Logout
+          </button>
+        </div>
       </header>
 
       {activeBanner && (

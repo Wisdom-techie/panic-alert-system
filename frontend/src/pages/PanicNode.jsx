@@ -4,6 +4,11 @@ import './PanicNode.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+const HEADERS = {
+  'Content-Type': 'application/json',
+  'ngrok-skip-browser-warning': 'true',
+};
+
 const DEVICE_CATEGORIES = [
   {
     category: 'Hostels',
@@ -112,10 +117,9 @@ export default function PanicNode() {
   const [geoStatus, setGeoStatus] = useState('idle');
   const fetchedOnce = useRef(false);
 
-  // Fetch recent alerts once on mount only
   if (!fetchedOnce.current) {
     fetchedOnce.current = true;
-    fetch(`${API_URL}/api/alerts?limit=4`)
+    fetch(`${API_URL}/api/alerts?limit=4`, { headers: HEADERS })
       .then((r) => r.json())
       .then((d) => { if (d.success) setRecentAlerts(d.alerts); })
       .catch(() => {});
@@ -132,7 +136,7 @@ export default function PanicNode() {
     try {
       const res = await fetch(`${API_URL}/api/alert`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: HEADERS,
         body: JSON.stringify({
           device_id: selectedDevice.id,
           location_label: selectedDevice.label,
@@ -144,8 +148,7 @@ export default function PanicNode() {
       if (res.ok && data.success) {
         setStatus('success');
         setLastSent(new Date().toLocaleTimeString());
-        // refresh recent alerts after successful send
-        fetch(`${API_URL}/api/alerts?limit=4`)
+        fetch(`${API_URL}/api/alerts?limit=4`, { headers: HEADERS })
           .then((r) => r.json())
           .then((d) => { if (d.success) setRecentAlerts(d.alerts); })
           .catch(() => {});
@@ -188,7 +191,6 @@ export default function PanicNode() {
 
       <main className="pn-main">
         <div className="pn-left">
-
           <div className="pn-card">
             <div className="pn-card-header">
               <div className="pn-card-title">Select Node Location</div>
@@ -282,13 +284,11 @@ export default function PanicNode() {
               This interface simulates the physical ESP32 panic button hardware node deployed
               across RSU campus locations. When activated, the system acquires the device's
               GPS coordinates via the browser Geolocation API, then transmits a structured
-              JSON payload containing the device ID, location label, GPS coordinates, and
-              timestamp via HTTP POST to the Node.js backend. The server persists the event
-              to MongoDB Atlas and pushes a real-time WebSocket notification to all connected
-              security dashboard clients — achieving sub-2-second end-to-end alert delivery.
+              JSON payload to the Node.js backend. The server persists the event to MongoDB
+              Atlas and pushes a real-time WebSocket notification to all connected security
+              dashboard clients — achieving sub-2-second end-to-end alert delivery.
             </p>
           </div>
-
         </div>
 
         <div className="pn-right">

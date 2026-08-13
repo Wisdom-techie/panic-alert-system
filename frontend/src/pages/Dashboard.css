@@ -498,3 +498,158 @@
 }
 
 .db-banner-maps:hover { background-color: rgba(255,255,255,0.3); }
+
+
+/* WITNESS REPORT BANNER (blue, distinct from red alert banner) */
+.db-report-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 32px;
+  background: linear-gradient(90deg, rgba(2,60,90,0.95), rgba(2,119,189,0.95), rgba(2,60,90,0.95));
+  border-bottom: 1px solid rgba(41,182,246,0.4);
+  backdrop-filter: blur(8px);
+  animation: bannerSlide 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  box-shadow: 0 4px 40px rgba(2,119,189,0.3);
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* STATS - add 4th card style */
+.db-stat.reports { border-top: 3px solid #29b6f6; }
+
+/* TABS */
+.db-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 32px;
+  margin-top: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.db-tab {
+  padding: 12px 20px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.db-tab:hover { color: var(--text-primary); }
+
+.db-tab.active {
+  color: var(--accent-blue);
+  border-bottom-color: var(--accent-blue);
+}
+
+.db-tab-badge {
+  background-color: var(--accent-red);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 10px;
+}
+
+/* TYPE BADGES */
+.db-type-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.db-type-red { background-color: rgba(239,68,68,0.12); color: #ef5350; border: 1px solid rgba(239,68,68,0.3); }
+.db-type-orange { background-color: rgba(255,152,0,0.12); color: #ff9800; border: 1px solid rgba(255,152,0,0.3); }
+.db-type-blue { background-color: rgba(41,182,246,0.12); color: #29b6f6; border: 1px solid rgba(41,182,246,0.3); }
+.db-type-purple { background-color: rgba(171,71,188,0.12); color: #ab47bc; border: 1px solid rgba(171,71,188,0.3); }
+.db-type-amber { background-color: rgba(255,202,40,0.12); color: #ffca28; border: 1px solid rgba(255,202,40,0.3); }
+.db-type-dark { background-color: rgba(120,144,156,0.12); color: #90a4ae; border: 1px solid rgba(120,144,156,0.3); }
+
+/* WITNESS REPORT CARDS */
+.db-reports-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.db-report-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 18px 20px;
+  transition: border-color 0.2s;
+}
+
+.db-report-card.reviewed { opacity: 0.6; }
+.db-report-card:hover { border-color: var(--border-light); }
+
+.db-report-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.db-report-location { font-size: 0.8rem; color: var(--text-secondary); }
+.db-report-time { font-size: 0.75rem; color: var(--text-muted); margin-left: auto; font-family: 'JetBrains Mono', monospace; }
+
+.db-report-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+
+.db-report-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.db-report-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.db-report-tag {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  padding: 3px 10px;
+  border-radius: 10px;
+}
+
+.db-report-file {
+  font-size: 0.75rem;
+  color: var(--accent-blue);
+  text-decoration: none;
+  padding: 3px 10px;
+  background-color: rgba(14,165,233,0.08);
+  border: 1px solid rgba(14,165,233,0.2);
+  border-radius: 10px;
+  transition: all 0.2s;
+}
+
+.db-report-file:hover { background-color: var(--accent-blue); color: var(--bg-primary); }
+
+@media (max-width: 768px) {
+  .db-tabs { padding: 0 20px; overflow-x: auto; }
+  .db-stat.reports { border-top: 3px solid #29b6f6; }
+}

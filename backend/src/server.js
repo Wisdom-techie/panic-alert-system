@@ -13,7 +13,6 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, ngrok-skip-browser-warning');
-  res.setHeader('ngrok-skip-browser-warning', 'true');
 
   if (req.method === 'OPTIONS') {
     return res.sendStatus(204);
@@ -26,7 +25,7 @@ app.use(express.json());
 app.use('/api', alertRoutes);
 
 app.get('/', (req, res) => {
-  res.json({ message: 'Smart Panic Alert System — Server Running' });
+  res.json({ message: 'Smart Panic Alert System - Server Running' });
 });
 
 initWebSocket(server);

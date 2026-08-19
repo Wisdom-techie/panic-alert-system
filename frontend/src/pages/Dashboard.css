@@ -653,3 +653,14 @@
   .db-tabs { padding: 0 20px; overflow-x: auto; }
   .db-stat.reports { border-top: 3px solid #29b6f6; }
 }
+.db-filter-select {
+  padding: 7px 14px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  cursor: pointer;
+  outline: none;
+}
+.db-filter-select:focus { border-color: var(--accent-blue); }

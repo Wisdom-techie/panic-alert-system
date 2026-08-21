@@ -26,6 +26,7 @@ function playAlertSound(audioCtxRef, isReport) {
       audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
     }
     const ctx = audioCtxRef.current;
+    if (ctx.state === 'suspended') ctx.resume();
     const freqs = isReport ? [523, 659] : [880, 660, 880];
     freqs.forEach((f, i) => {
       const t = i * 0.25;
@@ -42,7 +43,6 @@ function playAlertSound(audioCtxRef, isReport) {
     });
   } catch (e) {}
 }
-
 function MapsLink({ coords }) {
   if (!coords || !coords.latitude) {
     return <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>No GPS</span>;
@@ -125,6 +125,32 @@ export default function Dashboard() {
       }
     }).catch(console.error).finally(() => setLoading(false));
   }, []);
+
+  const sirenIntervalRef = useRef(null);
+
+useEffect(() => {
+  const hasActiveAlert = alerts.some((a) => !a.acknowledged);
+
+  if (hasActiveAlert) {
+    if (!sirenIntervalRef.current) {
+      sirenIntervalRef.current = setInterval(() => {
+        playAlertSound(audioCtxRef, false);
+      }, 3000); // repeats every 3 seconds
+    }
+  } else {
+    if (sirenIntervalRef.current) {
+      clearInterval(sirenIntervalRef.current);
+      sirenIntervalRef.current = null;
+    }
+  }
+
+  return () => {
+    if (sirenIntervalRef.current) {
+      clearInterval(sirenIntervalRef.current);
+      sirenIntervalRef.current = null;
+    }
+  };
+}, [alerts]);
 
   async function handleAcknowledge(id) {
     try {

@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard'
 import Analytics from './pages/Analytics'
 import Login from './pages/Login'
 import ProtectedRoute from './components/ProtectedRoute'
+import './theme.css';
 import './index.css'
 
 createRoot(document.getElementById('root')).render(

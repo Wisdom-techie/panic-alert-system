@@ -12,7 +12,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 32px;
-  background-color: rgba(13,17,23,0.9);
+  background-color: var(--bg-secondary-blur);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
   position: sticky;
@@ -356,7 +356,7 @@
 }
 
 .db-table tbody tr {
-  border-bottom: 1px solid rgba(30,45,69,0.5);
+  border-bottom: 1px solid var(--border);
   transition: background 0.15s;
 }
 

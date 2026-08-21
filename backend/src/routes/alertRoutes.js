@@ -5,6 +5,8 @@ const AlertEvent = require('../models/AlertEvent');
 const WitnessReport = require('../models/WitnessReport');
 const { broadcast } = require('../websocket/wsManager');
 const { upload } = require('../config/cloudinary');
+const PushSubscription = require('../models/PushSubscription');
+const webpush = require('../config/webpush');
 
 const VALID_ALERT_TYPES = ['Robbery', 'Assault', 'Medical', 'Accident', 'Fire', 'Suspicious'];
 
@@ -32,8 +34,13 @@ router.post('/alert', async (req, res) => {
     });
 
     broadcast({ type: 'NEW_ALERT', alert: newAlert });
+    sendPushToAllOperators(
+  `${alert_type.toUpperCase()} ALERT`,
+  `${device_id} — ${location_label}`,
+  '/dashboard'
+);
     console.log(`[ALERT] ${alert_type} - ${device_id} - ${location_label}`);
-
+  
     return res.status(200).json({ success: true, alert: newAlert });
   } catch (error) {
     console.error('[POST /alert]', error.message);
@@ -98,6 +105,26 @@ router.post('/alert/:id/acknowledge', async (req, res) => {
   }
 });
 
+router.post('/push/subscribe', async (req, res) => {
+  try {
+    const { endpoint, keys } = req.body;
+    if (!endpoint || !keys) {
+      return res.status(400).json({ success: false, message: 'Invalid subscription' });
+    }
+
+    await PushSubscription.findOneAndUpdate(
+      { endpoint },
+      { endpoint, keys },
+      { upsert: true, returnDocument: 'after' }
+    );
+
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('[POST /push/subscribe]', error.message);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // POST /api/witness-report (with optional file upload)
 router.post('/witness-report', upload.single('file'), async (req, res) => {
   try {
@@ -133,6 +160,11 @@ router.post('/witness-report', upload.single('file'), async (req, res) => {
     });
 
     broadcast({ type: 'NEW_WITNESS_REPORT', report: newReport });
+    sendPushToAllOperators(
+  'New Witness Report',
+  `${incident_type} — ${location_label}`,
+  '/dashboard'
+);
     console.log(`[WITNESS REPORT] ${incident_type} - ${location_label}`);
 
     return res.status(200).json({ success: true, report: newReport });
@@ -235,5 +267,27 @@ router.get('/analytics', async (req, res) => {
     return res.status(500).json({ success: false, message: 'Server error' });
   }
 });
+async function sendPushToAllOperators(title, body, url) {
+  try {
+    const subscriptions = await PushSubscription.find();
+    const payload = JSON.stringify({ title, body, url: url || '/dashboard' });
+
+    await Promise.all(
+      subscriptions.map((sub) =>
+        webpush.sendNotification(
+          { endpoint: sub.endpoint, keys: sub.keys },
+          payload
+        ).catch(async (err) => {
+          // Remove dead subscriptions (expired or unsubscribed)
+          if (err.statusCode === 404 || err.statusCode === 410) {
+            await PushSubscription.deleteOne({ endpoint: sub.endpoint });
+          }
+        })
+      )
+    );
+  } catch (err) {
+    console.error('[PUSH] Error sending notifications:', err.message);
+  }
+}
 
 module.exports = router;

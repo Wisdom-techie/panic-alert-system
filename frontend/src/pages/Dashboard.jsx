@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { subscribeToPushNotifications } from '../utils/pushNotifications';
 import './Dashboard.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -67,6 +68,9 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('alerts');
   const [filterType, setFilterType] = useState('All');
+  const [pushPermission, setPushPermission] = useState(
+    typeof Notification !== 'undefined' ? Notification.permission : 'default'
+  );
   const audioCtxRef = useRef(null);
   const seenAlertIds = useRef(new Set());
   const seenReportIds = useRef(new Set());
@@ -128,29 +132,44 @@ export default function Dashboard() {
 
   const sirenIntervalRef = useRef(null);
 
-useEffect(() => {
-  const hasActiveAlert = alerts.some((a) => !a.acknowledged);
-
-  if (hasActiveAlert) {
-    if (!sirenIntervalRef.current) {
-      sirenIntervalRef.current = setInterval(() => {
-        playAlertSound(audioCtxRef, false);
-      }, 3000); // repeats every 3 seconds
+  useEffect(() => {
+    if (pushPermission === 'granted') {
+      subscribeToPushNotifications();
     }
-  } else {
-    if (sirenIntervalRef.current) {
-      clearInterval(sirenIntervalRef.current);
-      sirenIntervalRef.current = null;
+  }, [pushPermission]);
+
+  useEffect(() => {
+    const hasActiveAlert = alerts.some((a) => !a.acknowledged);
+
+    if (hasActiveAlert) {
+      if (!sirenIntervalRef.current) {
+        sirenIntervalRef.current = setInterval(() => {
+          playAlertSound(audioCtxRef, false);
+        }, 3000);
+      }
+    } else {
+      if (sirenIntervalRef.current) {
+        clearInterval(sirenIntervalRef.current);
+        sirenIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (sirenIntervalRef.current) {
+        clearInterval(sirenIntervalRef.current);
+        sirenIntervalRef.current = null;
+      }
+    };
+  }, [alerts]);
+
+  async function handleEnableNotifications() {
+    const success = await subscribeToPushNotifications();
+    if (success) {
+      setPushPermission('granted');
+    } else {
+      setPushPermission(Notification.permission);
     }
   }
-
-  return () => {
-    if (sirenIntervalRef.current) {
-      clearInterval(sirenIntervalRef.current);
-      sirenIntervalRef.current = null;
-    }
-  };
-}, [alerts]);
 
   async function handleAcknowledge(id) {
     try {
@@ -204,6 +223,13 @@ useEffect(() => {
           </button>
         </div>
       </header>
+
+      {pushPermission !== 'granted' && (
+        <div className="db-push-banner">
+          <span>🔔 Enable push notifications to receive alerts even when this tab is closed or your screen is off.</span>
+          <button onClick={handleEnableNotifications}>Enable Notifications</button>
+        </div>
+      )}
 
       {activeBanner && activeBanner.kind === 'alert' && (
         <div className="db-alert-banner">

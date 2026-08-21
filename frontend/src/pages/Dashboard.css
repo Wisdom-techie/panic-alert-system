@@ -664,3 +664,25 @@
   outline: none;
 }
 .db-filter-select:focus { border-color: var(--accent-blue); }
+.db-push-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 32px;
+  background-color: rgba(14,165,233,0.08);
+  border-bottom: 1px solid rgba(14,165,233,0.2);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  flex-wrap: wrap;
+}
+.db-push-banner button {
+  background-color: var(--accent-blue);
+  color: var(--bg-primary);
+  border: none;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}

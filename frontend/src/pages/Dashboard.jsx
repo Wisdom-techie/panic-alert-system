@@ -119,23 +119,52 @@ function playAlertSound(audioCtxRef, isReport) {
     }
     const ctx = audioCtxRef.current;
     if (ctx.state === 'suspended') ctx.resume();
-    const freqs = isReport ? [523, 659] : [880, 660, 880];
-    freqs.forEach((f, i) => {
-      const t = i * 0.25;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(f, ctx.currentTime + t);
-      gain.gain.setValueAtTime(0.15, ctx.currentTime + t);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.2);
-      osc.start(ctx.currentTime + t);
-      osc.stop(ctx.currentTime + t + 0.2);
-    });
+
+    if (isReport) {
+      // Witness report: calmer double-chime, not a siren
+      const freqs = [523, 659];
+      freqs.forEach((f, i) => {
+        const t = i * 0.25;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(f, ctx.currentTime + t);
+        gain.gain.setValueAtTime(0.2, ctx.currentTime + t);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.3);
+        osc.start(ctx.currentTime + t);
+        osc.stop(ctx.currentTime + t + 0.3);
+      });
+      return;
+    }
+
+    // Emergency alert: real wailing siren (frequency sweep)
+    const duration = 1.6; // total siren duration in seconds
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sawtooth';
+
+    const now = ctx.currentTime;
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.exponentialRampToValueAtTime(0.35, now + 0.05);
+
+    // Sweep pitch up then down twice, like a real siren "wail"
+    osc.frequency.setValueAtTime(500, now);
+    osc.frequency.exponentialRampToValueAtTime(1100, now + duration * 0.25);
+    osc.frequency.exponentialRampToValueAtTime(500, now + duration * 0.5);
+    osc.frequency.exponentialRampToValueAtTime(1100, now + duration * 0.75);
+    osc.frequency.exponentialRampToValueAtTime(500, now + duration);
+
+    gain.gain.setValueAtTime(0.35, now + duration - 0.1);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    osc.start(now);
+    osc.stop(now + duration);
   } catch (e) {}
 }
-
 function MapsLink({ coords }) {
   if (!coords || !coords.latitude) {
     return <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>No GPS</span>;

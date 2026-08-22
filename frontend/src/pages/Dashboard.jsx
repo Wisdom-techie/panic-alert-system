@@ -22,6 +22,96 @@ const TYPE_COLORS = {
   Other: 'dark',
 };
 
+const Icon = {
+  Shield: () => (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2L4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6l-8-4z" />
+    </svg>
+  ),
+  Siren: () => (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+      <path d="M21 19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1z" />
+      <line x1="12" y1="2" x2="12" y2="4" />
+    </svg>
+  ),
+  Clipboard: () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+      <rect x="9" y="3" width="6" height="4" rx="1" />
+    </svg>
+  ),
+  BarChart: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="20" x2="12" y2="10" />
+      <line x1="18" y1="20" x2="18" y2="4" />
+      <line x1="6" y1="20" x2="6" y2="16" />
+    </svg>
+  ),
+  Alert: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  ),
+  Check: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+      <polyline points="22 4 12 14.01 9 11.01" />
+    </svg>
+  ),
+  CheckSmall: () => (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  ),
+  X: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  ),
+  Pin: () => (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  ),
+  Map: () => (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+      <line x1="8" y1="2" x2="8" y2="18" />
+      <line x1="16" y1="6" x2="16" y2="22" />
+    </svg>
+  ),
+  Paperclip: () => (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+    </svg>
+  ),
+  Bell: () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </svg>
+  ),
+  Sun: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="5" />
+      <line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" />
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+      <line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" />
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+    </svg>
+  ),
+  Moon: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
+  ),
+};
+
 function playAlertSound(audioCtxRef, isReport) {
   try {
     if (!audioCtxRef.current) {
@@ -45,6 +135,7 @@ function playAlertSound(audioCtxRef, isReport) {
     });
   } catch (e) {}
 }
+
 function MapsLink({ coords }) {
   if (!coords || !coords.latitude) {
     return <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>No GPS</span>;
@@ -52,7 +143,7 @@ function MapsLink({ coords }) {
   const url = `https://www.google.com/maps?q=${coords.latitude},${coords.longitude}`;
   return (
     <a href={url} target="_blank" rel="noopener noreferrer" className="db-maps-link">
-      📍 {coords.latitude.toFixed(4)}, {coords.longitude.toFixed(4)}
+      <Icon.Pin /> {coords.latitude.toFixed(4)}, {coords.longitude.toFixed(4)}
     </a>
   );
 }
@@ -209,7 +300,7 @@ export default function Dashboard() {
 
       <header className="db-header">
         <div className="db-logo">
-          <div className="db-logo-icon">🛡</div>
+          <div className="db-logo-icon"><Icon.Shield /></div>
           <div>
             <h1>Security Monitoring Dashboard</h1>
             <p>Rivers State University — Real-Time Alert Management</p>
@@ -223,7 +314,7 @@ export default function Dashboard() {
           <Link to="/dashboard/analytics" className="db-node-link">Analytics →</Link>
           <Link to="/" className="db-node-link">← Panic Node</Link>
           <button className="db-theme-btn" onClick={handleThemeToggle}>
-            {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
+            {theme === 'dark' ? <><Icon.Sun /> Light</> : <><Icon.Moon /> Dark</>}
           </button>
           <button
             className="db-logout-btn"
@@ -236,7 +327,7 @@ export default function Dashboard() {
 
       {pushPermission !== 'granted' && (
         <div className="db-push-banner">
-          <span>🔔 Enable push notifications to receive alerts even when this tab is closed or your screen is off.</span>
+          <span><Icon.Bell /> Enable push notifications to receive alerts even when this tab is closed or your screen is off.</span>
           <button onClick={handleEnableNotifications}>Enable Notifications</button>
         </div>
       )}
@@ -244,64 +335,64 @@ export default function Dashboard() {
       {activeBanner && activeBanner.kind === 'alert' && (
         <div className="db-alert-banner">
           <div className="db-banner-inner">
-            <span className="db-banner-siren">🚨</span>
+            <span className="db-banner-siren"><Icon.Siren /></span>
             <div>
               <div className="db-banner-title">
                 {activeBanner.data.alert_type?.toUpperCase()} ALERT RECEIVED
               </div>
               <div className="db-banner-meta">
                 <span className="db-banner-chip">{activeBanner.data.device_id}</span>
-                📍 {activeBanner.data.location_label}
+                <Icon.Pin /> {activeBanner.data.location_label}
                 &nbsp;·&nbsp;
                 {new Date(activeBanner.data.server_received_at).toLocaleTimeString()}
                 {activeBanner.data.coordinates?.latitude && (
                   <a href={`https://www.google.com/maps?q=${activeBanner.data.coordinates.latitude},${activeBanner.data.coordinates.longitude}`} target="_blank" rel="noopener noreferrer" className="db-banner-maps">
-                    🗺 Open in Maps
+                    <Icon.Map /> Open in Maps
                   </a>
                 )}
               </div>
             </div>
           </div>
-          <button className="db-banner-dismiss" onClick={() => setActiveBanner(null)}>✕</button>
+          <button className="db-banner-dismiss" onClick={() => setActiveBanner(null)}><Icon.X /></button>
         </div>
       )}
 
       {activeBanner && activeBanner.kind === 'report' && (
         <div className="db-report-banner">
           <div className="db-banner-inner">
-            <span className="db-banner-siren">📋</span>
+            <span className="db-banner-siren"><Icon.Clipboard /></span>
             <div>
               <div className="db-banner-title">NEW WITNESS REPORT — {activeBanner.data.incident_type?.toUpperCase()}</div>
               <div className="db-banner-meta">
-                📍 {activeBanner.data.location_label}
+                <Icon.Pin /> {activeBanner.data.location_label}
                 &nbsp;·&nbsp;
                 {new Date(activeBanner.data.submitted_at).toLocaleTimeString()}
                 {activeBanner.data.anonymous && <span className="db-banner-chip">Anonymous</span>}
               </div>
             </div>
           </div>
-          <button className="db-banner-dismiss" onClick={() => setActiveBanner(null)}>✕</button>
+          <button className="db-banner-dismiss" onClick={() => setActiveBanner(null)}><Icon.X /></button>
         </div>
       )}
 
       <div className="db-stats">
         <div className="db-stat total">
-          <span className="db-stat-icon">📊</span>
+          <span className="db-stat-icon"><Icon.BarChart /></span>
           <div className="db-stat-number">{stats.total}</div>
           <div className="db-stat-label">Total Alerts</div>
         </div>
         <div className="db-stat active">
-          <span className="db-stat-icon">⚠️</span>
+          <span className="db-stat-icon"><Icon.Alert /></span>
           <div className="db-stat-number">{stats.active}</div>
           <div className="db-stat-label">Active</div>
         </div>
         <div className="db-stat acked">
-          <span className="db-stat-icon">✅</span>
+          <span className="db-stat-icon"><Icon.Check /></span>
           <div className="db-stat-number">{stats.acked}</div>
           <div className="db-stat-label">Acknowledged</div>
         </div>
         <div className="db-stat reports">
-          <span className="db-stat-icon">📋</span>
+          <span className="db-stat-icon"><Icon.Clipboard /></span>
           <div className="db-stat-number">{stats.reports}</div>
           <div className="db-stat-label">Witness Reports</div>
         </div>
@@ -337,7 +428,7 @@ export default function Dashboard() {
           ) : filteredAlerts.length === 0 ? (
             <div className="db-empty">
               {filterType === 'All'
-                ? '🟢 No alerts recorded. System is actively monitoring all nodes.'
+                ? 'No alerts recorded. System is actively monitoring all nodes.'
                 : `No alerts of type "${filterType}" recorded.`}
             </div>
           ) : (
@@ -368,8 +459,8 @@ export default function Dashboard() {
                       </td>
                       <td>
                         {alert.acknowledged
-                          ? <span className="db-status-acked">✓ Acknowledged</span>
-                          : <span className="db-status-active">⚠ Active</span>}
+                          ? <span className="db-status-acked"><Icon.CheckSmall /> Acknowledged</span>
+                          : <span className="db-status-active"><Icon.Alert /> Active</span>}
                       </td>
                       <td>
                         {alert.acknowledged
@@ -395,14 +486,14 @@ export default function Dashboard() {
           {loading ? (
             <div className="db-loading">Loading reports...</div>
           ) : reports.length === 0 ? (
-            <div className="db-empty">🟢 No witness reports submitted yet.</div>
+            <div className="db-empty">No witness reports submitted yet.</div>
           ) : (
             <div className="db-reports-list">
               {reports.map((r) => (
                 <div key={r._id} className={`db-report-card ${r.reviewed ? 'reviewed' : ''}`}>
                   <div className="db-report-header">
                     <TypeBadge type={r.incident_type} />
-                    <span className="db-report-location">📍 {r.location_label}</span>
+                    <span className="db-report-location"><Icon.Pin /> {r.location_label}</span>
                     <span className="db-report-time">{new Date(r.submitted_at).toLocaleString()}</span>
                   </div>
                   <p className="db-report-desc">{r.description}</p>
@@ -415,13 +506,13 @@ export default function Dashboard() {
                       ) : null}
                       {r.file_url && (
                         <a href={r.file_url} target="_blank" rel="noopener noreferrer" className="db-report-file">
-                          📎 View Evidence
+                          <Icon.Paperclip /> View Evidence
                         </a>
                       )}
                       <MapsLink coords={r.coordinates} />
                     </div>
                     {r.reviewed ? (
-                      <span className="db-status-acked">✓ Reviewed</span>
+                      <span className="db-status-acked"><Icon.CheckSmall /> Reviewed</span>
                     ) : (
                       <button className="db-ack-btn" onClick={() => handleReview(r._id)}>Mark Reviewed</button>
                     )}
@@ -434,7 +525,7 @@ export default function Dashboard() {
       )}
 
       <footer className="db-footer">
-        Smart Panic Alert System — By wisdom Stephen Chimzibudu, A Computer Engineering Final Year Student · Rivers State University · {new Date().getFullYear()}
+        Smart Panic Alert System — Computer Engineering Final Year Project · Rivers State University · {new Date().getFullYear()}
       </footer>
     </div>
   );

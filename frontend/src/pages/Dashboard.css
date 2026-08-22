@@ -744,3 +744,41 @@
     min-height: 100vh;
   }
 }
+.db-logo-icon svg,
+.db-stat-icon svg,
+.db-banner-siren svg,
+.db-theme-btn svg,
+.db-status-active svg,
+.db-status-acked svg,
+.db-maps-link svg,
+.db-banner-maps svg,
+.db-report-file svg,
+.db-report-location svg,
+.db-banner-meta svg,
+.db-push-banner svg,
+.db-banner-dismiss svg {
+  vertical-align: middle;
+  display: inline-block;
+}
+
+.db-status-active, .db-status-acked, .db-maps-link, .db-banner-maps, .db-report-file, .db-report-location, .db-theme-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.db-push-banner {
+  display: flex;
+  align-items: center;
+}
+.db-push-banner span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.db-banner-dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { subscribeToPushNotifications } from '../utils/pushNotifications';
+import { getStoredTheme, toggleTheme } from '../utils/theme';
 import './Dashboard.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -67,6 +68,7 @@ export default function Dashboard() {
   const [activeBanner, setActiveBanner] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('alerts');
+  const [theme, setTheme] = useState(getStoredTheme());
   const [filterType, setFilterType] = useState('All');
   const [pushPermission, setPushPermission] = useState(
     typeof Notification !== 'undefined' ? Notification.permission : 'default'
@@ -171,6 +173,11 @@ export default function Dashboard() {
     }
   }
 
+  function handleThemeToggle() {
+    const next = toggleTheme();
+    setTheme(next);
+  }
+
   async function handleAcknowledge(id) {
     try {
       const res = await fetch(`${API_URL}/api/alert/${id}/acknowledge`, { method: 'POST', headers: HEADERS });
@@ -215,6 +222,9 @@ export default function Dashboard() {
           </div>
           <Link to="/dashboard/analytics" className="db-node-link">Analytics →</Link>
           <Link to="/" className="db-node-link">← Panic Node</Link>
+          <button className="db-theme-btn" onClick={handleThemeToggle}>
+            {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
+          </button>
           <button
             className="db-logout-btn"
             onClick={() => { sessionStorage.removeItem('rsu_security_auth'); window.location.href = '/login'; }}
@@ -424,7 +434,7 @@ export default function Dashboard() {
       )}
 
       <footer className="db-footer">
-        Smart Panic Alert System — Computer Engineering Final Year Project · Rivers State University · {new Date().getFullYear()}
+        Smart Panic Alert System — By wisdom Stephen Chimzibudu, A Computer Engineering Final Year Student · Rivers State University · {new Date().getFullYear()}
       </footer>
     </div>
   );

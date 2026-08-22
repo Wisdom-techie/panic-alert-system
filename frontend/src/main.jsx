@@ -8,6 +8,8 @@ import Login from './pages/Login'
 import ProtectedRoute from './components/ProtectedRoute'
 import './theme.css';
 import './index.css'
+import { getStoredTheme, applyTheme } from './utils/theme';
+applyTheme(getStoredTheme());
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

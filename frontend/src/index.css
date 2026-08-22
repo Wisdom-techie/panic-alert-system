@@ -5,6 +5,10 @@
   margin: 0;
   padding: 0;
 }
+html, body {
+  height: 100%;
+  overflow-y: auto;
+}
 
 :root {
   --bg-primary: #080a0f;
@@ -30,6 +34,28 @@
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 24px;
+}
+
+[data-theme="light"] {
+  --bg-primary: #f4f7fb;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f0f4fa;
+  --border: #d9e2ef;
+  --border-light: #c4d1e3;
+  --accent-blue: #0284c7;
+  --accent-blue-dim: #e0f2fe;
+  --accent-red: #dc2626;
+  --accent-red-dim: #fee2e2;
+  --accent-green: #16a34a;
+  --accent-green-dim: #dcfce7;
+  --accent-orange: #ea580c;
+  --accent-purple: #9333ea;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --glow-red: 0 0 20px rgba(220,38,38,0.15);
+  --glow-blue: 0 0 15px rgba(2,132,199,0.15);
 }
 
 html, body { height: 100%; }

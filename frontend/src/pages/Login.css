@@ -190,3 +190,22 @@
   font-size: 0.7rem;
   color: var(--text-muted);
 }
+
+.login-panic-node-btn {
+  display: block;
+  text-align: center;
+  margin-top: 18px;
+  padding: 11px;
+  background-color: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+.login-panic-node-btn:hover {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}

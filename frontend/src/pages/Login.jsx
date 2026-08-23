@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { saveAuth } from '../utils/auth';
 import './Login.css';
 
@@ -88,6 +88,10 @@ export default function Login() {
             {loading ? 'Signing in...' : 'Access Dashboard'}
           </button>
         </form>
+
+        <Link to="/" className="login-panic-node-btn">
+          ← Back to Panic Node
+        </Link>
 
         <div className="login-footer">
           Smart Panic Alert System · Rivers State University · {new Date().getFullYear()}

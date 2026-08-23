@@ -23,6 +23,15 @@ const AlertEventSchema = new mongoose.Schema({
   },
   acknowledged: { type: Boolean, default: false },
   acknowledged_at: { type: Date, default: null },
+
+  resolution_status: {
+  type: String,
+  enum: ['Pending', 'Resolved', 'False Alarm', 'Escalated'],
+  default: 'Pending',
+},
+resolution_notes: { type: String, default: '' },
+resolved_by: { type: String, default: '' },
+resolved_at: { type: Date, default: null },
 });
 
 module.exports = mongoose.model('AlertEvent', AlertEventSchema);

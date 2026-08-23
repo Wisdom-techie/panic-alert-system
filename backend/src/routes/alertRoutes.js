@@ -48,6 +48,28 @@ router.post('/alert', async (req, res) => {
   }
 });
 
+
+router.post('/alert/:id/resolve', async (req, res) => {
+  try {
+    const { resolution_status, resolution_notes, resolved_by } = req.body;
+    if (!resolution_status || !resolution_notes?.trim()) {
+      return res.status(400).json({ success: false, message: 'Status and notes are required' });
+    }
+    const updated = await AlertEvent.findByIdAndUpdate(
+      req.params.id,
+      { resolution_status, resolution_notes: resolution_notes.trim(), resolved_by: resolved_by || 'Security Operator', resolved_at: new Date() },
+      { new: true }
+    );
+    if (!updated) return res.status(404).json({ success: false, message: 'Alert not found' });
+    broadcast({ type: 'ALERT_RESOLVED', alertId: updated._id, alert: updated });
+    return res.status(200).json({ success: true, alert: updated });
+  } catch (error) {
+    console.error('[POST /alert/:id/resolve]', error.message);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+
 // GET /api/alerts
 router.get('/alerts', async (req, res) => {
   try {

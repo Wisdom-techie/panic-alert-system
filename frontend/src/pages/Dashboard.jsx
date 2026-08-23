@@ -7,6 +7,7 @@ import './Dashboard.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const ALERT_TYPES = ['All', 'Robbery', 'Assault', 'Medical', 'Accident', 'Fire', 'Suspicious'];
+const RESOLUTION_STATUSES = ['Resolved', 'False Alarm', 'Escalated'];
 const HEADERS = {
   'Content-Type': 'application/json',
   'ngrok-skip-browser-warning': 'true',
@@ -110,6 +111,13 @@ const Icon = {
       <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
     </svg>
   ),
+  FileText: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
+    </svg>
+  ),
 };
 
 function playAlertSound(audioCtxRef, isReport) {
@@ -121,7 +129,6 @@ function playAlertSound(audioCtxRef, isReport) {
     if (ctx.state === 'suspended') ctx.resume();
 
     if (isReport) {
-      // Witness report: calmer double-chime, not a siren
       const freqs = [523, 659];
       freqs.forEach((f, i) => {
         const t = i * 0.25;
@@ -139,8 +146,7 @@ function playAlertSound(audioCtxRef, isReport) {
       return;
     }
 
-    // Emergency alert: real wailing siren (frequency sweep)
-    const duration = 1.6; // total siren duration in seconds
+    const duration = 1.6;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);
@@ -151,7 +157,6 @@ function playAlertSound(audioCtxRef, isReport) {
     gain.gain.setValueAtTime(0.001, now);
     gain.gain.exponentialRampToValueAtTime(0.35, now + 0.05);
 
-    // Sweep pitch up then down twice, like a real siren "wail"
     osc.frequency.setValueAtTime(500, now);
     osc.frequency.exponentialRampToValueAtTime(1100, now + duration * 0.25);
     osc.frequency.exponentialRampToValueAtTime(500, now + duration * 0.5);
@@ -165,6 +170,7 @@ function playAlertSound(audioCtxRef, isReport) {
     osc.stop(now + duration);
   } catch (e) {}
 }
+
 function MapsLink({ coords }) {
   if (!coords || !coords.latitude) {
     return <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>No GPS</span>;
@@ -182,6 +188,12 @@ function TypeBadge({ type }) {
   return <span className={`db-type-badge db-type-${color}`}>{type}</span>;
 }
 
+function ResolutionBadge({ status }) {
+  if (!status || status === 'Pending') return null;
+  const cls = status === 'Resolved' ? 'db-res-resolved' : status === 'False Alarm' ? 'db-res-false' : 'db-res-escalated';
+  return <span className={`db-res-badge ${cls}`}>{status}</span>;
+}
+
 export default function Dashboard() {
   const [alerts, setAlerts] = useState([]);
   const [reports, setReports] = useState([]);
@@ -193,6 +205,11 @@ export default function Dashboard() {
   const [pushPermission, setPushPermission] = useState(
     typeof Notification !== 'undefined' ? Notification.permission : 'default'
   );
+  const [reportPanelAlert, setReportPanelAlert] = useState(null); // the alert being reported on
+  const [resStatus, setResStatus] = useState(RESOLUTION_STATUSES[0]);
+  const [resNotes, setResNotes] = useState('');
+  const [resSubmitting, setResSubmitting] = useState(false);
+
   const audioCtxRef = useRef(null);
   const seenAlertIds = useRef(new Set());
   const seenReportIds = useRef(new Set());
@@ -219,6 +236,16 @@ export default function Dashboard() {
         prev.map((a) => a._id === data.alertId ? { ...a, acknowledged: true, acknowledged_at: data.acknowledged_at } : a)
       );
     }
+    if (data.type === 'ALERT_LOCATION_UPDATED') {
+      setAlerts((prev) =>
+        prev.map((a) => a._id === data.alertId ? { ...a, coordinates: data.coordinates } : a)
+      );
+    }
+    if (data.type === 'ALERT_RESOLVED') {
+      setAlerts((prev) =>
+        prev.map((a) => a._id === data.alertId ? { ...a, ...data.alert } : a)
+      );
+    }
     if (data.type === 'NEW_WITNESS_REPORT') {
       const incoming = data.report;
       if (seenReportIds.current.has(incoming._id)) return;
@@ -232,11 +259,6 @@ export default function Dashboard() {
         prev.map((r) => r._id === data.reportId ? { ...r, reviewed: true, reviewed_at: data.reviewed_at } : r)
       );
     }
-    if (data.type === 'ALERT_LOCATION_UPDATED') {
-  setAlerts((prev) =>
-    prev.map((a) => a._id === data.alertId ? { ...a, coordinates: data.coordinates } : a)
-  );
-}
   }
 
   const { connected } = useWebSocket(handleWsMessage);
@@ -266,9 +288,10 @@ export default function Dashboard() {
   }, [pushPermission]);
 
   useEffect(() => {
-    const hasActiveAlert = alerts.some((a) => !a.acknowledged);
+    // Siren now stays active until an alert is BOTH acknowledged AND has a filed report
+    const hasUnresolvedAlert = alerts.some((a) => !a.acknowledged || !a.resolution_status || a.resolution_status === 'Pending');
 
-    if (hasActiveAlert) {
+    if (hasUnresolvedAlert) {
       if (!sirenIntervalRef.current) {
         sirenIntervalRef.current = setInterval(() => {
           playAlertSound(audioCtxRef, false);
@@ -325,6 +348,42 @@ export default function Dashboard() {
         );
       }
     } catch (e) { console.error(e); }
+  }
+
+  function openReportPanel(alert) {
+    setReportPanelAlert(alert);
+    setResStatus(RESOLUTION_STATUSES[0]);
+    setResNotes('');
+  }
+
+  function closeReportPanel() {
+    if (resSubmitting) return;
+    setReportPanelAlert(null);
+  }
+
+  async function handleSubmitResolution(e) {
+    e.preventDefault();
+    if (!resNotes.trim() || !reportPanelAlert) return;
+    setResSubmitting(true);
+    try {
+      const res = await fetch(`${API_URL}/api/alert/${reportPanelAlert._id}/resolve`, {
+        method: 'POST',
+        headers: HEADERS,
+        body: JSON.stringify({
+          resolution_status: resStatus,
+          resolution_notes: resNotes.trim(),
+          resolved_by: 'RSU Security Operator',
+        }),
+      });
+      const d = await res.json();
+      if (d.success) {
+        setAlerts((prev) =>
+          prev.map((a) => a._id === reportPanelAlert._id ? { ...a, ...d.alert } : a)
+        );
+        setReportPanelAlert(null);
+      }
+    } catch (e) { console.error(e); }
+    setResSubmitting(false);
   }
 
   const filteredAlerts = alerts.filter((a) => filterType === 'All' || a.alert_type === filterType);
@@ -477,32 +536,45 @@ export default function Dashboard() {
                     <th>GPS</th>
                     <th>Time</th>
                     <th>Status</th>
+                    <th>Resolution</th>
                     <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredAlerts.map((alert, i) => (
-                    <tr key={alert._id} className={alert.acknowledged ? 'row-acked' : 'row-active'}>
-                      <td style={{ color: 'var(--text-muted)', fontFamily: 'JetBrains Mono, monospace', fontSize: '0.72rem' }}>{i + 1}</td>
-                      <td><TypeBadge type={alert.alert_type} /></td>
-                      <td><span className="db-device-tag">{alert.device_id}</span></td>
-                      <td style={{ maxWidth: '200px' }}>{alert.location_label}</td>
-                      <td><MapsLink coords={alert.coordinates} /></td>
-                      <td style={{ whiteSpace: 'nowrap', fontFamily: 'JetBrains Mono, monospace', fontSize: '0.75rem' }}>
-                        {new Date(alert.server_received_at).toLocaleString()}
-                      </td>
-                      <td>
-                        {alert.acknowledged
-                          ? <span className="db-status-acked"><Icon.CheckSmall /> Acknowledged</span>
-                          : <span className="db-status-active"><Icon.Alert /> Active</span>}
-                      </td>
-                      <td>
-                        {alert.acknowledged
-                          ? <span className="db-ack-time">{new Date(alert.acknowledged_at).toLocaleTimeString()}</span>
-                          : <button className="db-ack-btn" onClick={() => handleAcknowledge(alert._id)}>Acknowledge</button>}
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredAlerts.map((alert, i) => {
+                    const needsReport = alert.acknowledged && (!alert.resolution_status || alert.resolution_status === 'Pending');
+                    return (
+                      <tr key={alert._id} className={alert.acknowledged ? 'row-acked' : 'row-active'}>
+                        <td style={{ color: 'var(--text-muted)', fontFamily: 'JetBrains Mono, monospace', fontSize: '0.72rem' }}>{i + 1}</td>
+                        <td><TypeBadge type={alert.alert_type} /></td>
+                        <td><span className="db-device-tag">{alert.device_id}</span></td>
+                        <td style={{ maxWidth: '200px' }}>{alert.location_label}</td>
+                        <td><MapsLink coords={alert.coordinates} /></td>
+                        <td style={{ whiteSpace: 'nowrap', fontFamily: 'JetBrains Mono, monospace', fontSize: '0.75rem' }}>
+                          {new Date(alert.server_received_at).toLocaleString()}
+                        </td>
+                        <td>
+                          {alert.acknowledged
+                            ? <span className="db-status-acked"><Icon.CheckSmall /> Acknowledged</span>
+                            : <span className="db-status-active"><Icon.Alert /> Active</span>}
+                        </td>
+                        <td><ResolutionBadge status={alert.resolution_status} /></td>
+                        <td>
+                          {!alert.acknowledged ? (
+                            <button className="db-ack-btn" onClick={() => handleAcknowledge(alert._id)}>Acknowledge</button>
+                          ) : needsReport ? (
+                            <button className="db-report-btn" onClick={() => openReportPanel(alert)}>
+                              <Icon.FileText /> File Report
+                            </button>
+                          ) : (
+                            <button className="db-report-view-btn" onClick={() => openReportPanel(alert)}>
+                              View Report
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -561,6 +633,77 @@ export default function Dashboard() {
       <footer className="db-footer">
         Smart Panic Alert System — Computer Engineering Final Year Project · Rivers State University · {new Date().getFullYear()}
       </footer>
+
+      {/* SLIDE-IN INCIDENT REPORT PANEL */}
+      {reportPanelAlert && (
+        <>
+          <div className="db-panel-overlay" onClick={closeReportPanel}></div>
+          <div className="db-report-panel">
+            <div className="db-panel-header">
+              <div>
+                <div className="db-panel-title">Incident Report</div>
+                <div className="db-panel-sub">
+                  <TypeBadge type={reportPanelAlert.alert_type} /> · {reportPanelAlert.device_id}
+                </div>
+              </div>
+              <button className="db-panel-close" onClick={closeReportPanel}><Icon.X /></button>
+            </div>
+
+            <div className="db-panel-body">
+              <div className="db-panel-field-static">
+                <span className="db-panel-label">Location</span>
+                <span>{reportPanelAlert.location_label}</span>
+              </div>
+              <div className="db-panel-field-static">
+                <span className="db-panel-label">Alert Time</span>
+                <span>{new Date(reportPanelAlert.server_received_at).toLocaleString()}</span>
+              </div>
+
+              {reportPanelAlert.resolution_status && reportPanelAlert.resolution_status !== 'Pending' ? (
+                <div className="db-panel-filed">
+                  <div className="db-panel-field-static">
+                    <span className="db-panel-label">Status</span>
+                    <ResolutionBadge status={reportPanelAlert.resolution_status} />
+                  </div>
+                  <div className="db-panel-field-static">
+                    <span className="db-panel-label">Filed By</span>
+                    <span>{reportPanelAlert.resolved_by}</span>
+                  </div>
+                  <div className="db-panel-field-static">
+                    <span className="db-panel-label">Filed At</span>
+                    <span>{new Date(reportPanelAlert.resolved_at).toLocaleString()}</span>
+                  </div>
+                  <div className="db-panel-notes-view">
+                    <span className="db-panel-label">Notes</span>
+                    <p>{reportPanelAlert.resolution_notes}</p>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmitResolution} className="db-panel-form">
+                  <label className="db-panel-label">Resolution Status</label>
+                  <select value={resStatus} onChange={(e) => setResStatus(e.target.value)} className="db-panel-select">
+                    {RESOLUTION_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+
+                  <label className="db-panel-label" style={{ marginTop: '14px' }}>Incident Notes</label>
+                  <textarea
+                    rows="6"
+                    placeholder="Describe what happened, actions taken, and outcome..."
+                    value={resNotes}
+                    onChange={(e) => setResNotes(e.target.value)}
+                    className="db-panel-textarea"
+                    required
+                  />
+
+                  <button type="submit" className="db-panel-submit" disabled={resSubmitting}>
+                    {resSubmitting ? 'Submitting...' : 'Submit Report'}
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

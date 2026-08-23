@@ -26,6 +26,8 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 app.use('/api', alertRoutes);
+const { router: authRoutes } = require('./routes/authRoutes');
+app.use('/api', authRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Smart Panic Alert System - Server Running' });

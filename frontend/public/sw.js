@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rsu-panic-alert-v3'; // bump this number on every future deploy that breaks things
+const CACHE_NAME = 'rsu-panic-alert-v4';
 const urlsToCache = ['/'];
 
 self.addEventListener('install', (event) => {
@@ -21,6 +21,7 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // Never cache JS, CSS, or API calls — always fetch fresh from network
   if (
     event.request.url.includes('/api/') ||
     event.request.url.includes('/src/') ||
@@ -28,12 +29,21 @@ self.addEventListener('fetch', (event) => {
     event.request.url.includes('.jsx') ||
     event.request.url.includes('.css')
   ) {
-    event.respondWith(fetch(event.request));
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match(event.request))
+    );
     return;
   }
 
+  // For everything else (HTML shell, images), try network first, fallback to cache
   event.respondWith(
-    caches.match(event.request).then((response) => response || fetch(event.request))
+    fetch(event.request)
+      .then((response) => {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
 

@@ -43,11 +43,21 @@ createRoot(document.getElementById('root')).render(
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').then(
-      (reg) => console.log('Service Worker registered:', reg.scope),
+      (reg) => {
+        console.log('Service Worker registered:', reg.scope);
+
+        // Check for a newer service worker every time the app becomes visible again
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') {
+            reg.update();
+          }
+        });
+      },
       (err) => console.log('Service Worker registration failed:', err)
     );
   });
 }
+
 navigator.serviceWorker?.addEventListener('controllerchange', () => {
   window.location.reload();
 });

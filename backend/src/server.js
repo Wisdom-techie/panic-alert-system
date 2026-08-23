@@ -6,6 +6,9 @@ const mongoose = require('mongoose');
 const alertRoutes = require('./routes/alertRoutes');
 const { initWebSocket } = require('./websocket/wsManager');
 
+const { router: authRoutes } = require('./routes/authRoutes');
+app.use('/api', authRoutes);
+
 const app = express();
 const server = http.createServer(app);
 

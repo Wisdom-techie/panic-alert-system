@@ -32,6 +32,7 @@ const AlertEventSchema = new mongoose.Schema({
 resolution_notes: { type: String, default: '' },
 resolved_by: { type: String, default: '' },
 resolved_at: { type: Date, default: null },
+acknowledged_by: { type: String, default: '' },
 });
 
 module.exports = mongoose.model('AlertEvent', AlertEventSchema);

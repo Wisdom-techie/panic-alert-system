@@ -7,6 +7,7 @@ const { broadcast } = require('../websocket/wsManager');
 const { upload } = require('../config/cloudinary');
 const PushSubscription = require('../models/PushSubscription');
 const webpush = require('../config/webpush');
+const { verifyToken } = require('./authRoutes');
 
 const VALID_ALERT_TYPES = ['Robbery', 'Assault', 'Medical', 'Accident', 'Fire', 'Suspicious'];
 
@@ -35,12 +36,12 @@ router.post('/alert', async (req, res) => {
 
     broadcast({ type: 'NEW_ALERT', alert: newAlert });
     sendPushToAllOperators(
-  `${alert_type.toUpperCase()} ALERT`,
-  `${device_id} — ${location_label}`,
-  '/dashboard'
-);
+      `${alert_type.toUpperCase()} ALERT`,
+      `${device_id} — ${location_label}`,
+      '/dashboard'
+    );
     console.log(`[ALERT] ${alert_type} - ${device_id} - ${location_label}`);
-  
+
     return res.status(200).json({ success: true, alert: newAlert });
   } catch (error) {
     console.error('[POST /alert]', error.message);
@@ -48,16 +49,21 @@ router.post('/alert', async (req, res) => {
   }
 });
 
-
-router.post('/alert/:id/resolve', async (req, res) => {
+// POST /api/alert/:id/resolve  (now requires login, tags the operator)
+router.post('/alert/:id/resolve', verifyToken, async (req, res) => {
   try {
-    const { resolution_status, resolution_notes, resolved_by } = req.body;
+    const { resolution_status, resolution_notes } = req.body;
     if (!resolution_status || !resolution_notes?.trim()) {
       return res.status(400).json({ success: false, message: 'Status and notes are required' });
     }
     const updated = await AlertEvent.findByIdAndUpdate(
       req.params.id,
-      { resolution_status, resolution_notes: resolution_notes.trim(), resolved_by: resolved_by || 'Security Operator', resolved_at: new Date() },
+      {
+        resolution_status,
+        resolution_notes: resolution_notes.trim(),
+        resolved_by: req.user.full_name,
+        resolved_at: new Date(),
+      },
       { new: true }
     );
     if (!updated) return res.status(404).json({ success: false, message: 'Alert not found' });
@@ -68,7 +74,6 @@ router.post('/alert/:id/resolve', async (req, res) => {
     return res.status(500).json({ success: false, message: 'Server error' });
   }
 });
-
 
 // GET /api/alerts
 router.get('/alerts', async (req, res) => {
@@ -95,8 +100,8 @@ router.get('/alerts', async (req, res) => {
   }
 });
 
-// POST /api/alert/:id/acknowledge
-router.post('/alert/:id/acknowledge', async (req, res) => {
+// POST /api/alert/:id/acknowledge  (now requires login, tags the operator)
+router.post('/alert/:id/acknowledge', verifyToken, async (req, res) => {
   try {
     const id = String(req.params.id).trim();
 
@@ -106,7 +111,7 @@ router.post('/alert/:id/acknowledge', async (req, res) => {
 
     const alert = await AlertEvent.findByIdAndUpdate(
       id,
-      { acknowledged: true, acknowledged_at: new Date() },
+      { acknowledged: true, acknowledged_at: new Date(), acknowledged_by: req.user.full_name },
       { returnDocument: 'after' }
     );
 
@@ -118,6 +123,7 @@ router.post('/alert/:id/acknowledge', async (req, res) => {
       type: 'ALERT_ACKNOWLEDGED',
       alertId: id,
       acknowledged_at: alert.acknowledged_at,
+      acknowledged_by: alert.acknowledged_by,
     });
 
     return res.status(200).json({ success: true, alert });
@@ -183,10 +189,10 @@ router.post('/witness-report', upload.single('file'), async (req, res) => {
 
     broadcast({ type: 'NEW_WITNESS_REPORT', report: newReport });
     sendPushToAllOperators(
-  'New Witness Report',
-  `${incident_type} — ${location_label}`,
-  '/dashboard'
-);
+      'New Witness Report',
+      `${incident_type} — ${location_label}`,
+      '/dashboard'
+    );
     console.log(`[WITNESS REPORT] ${incident_type} - ${location_label}`);
 
     return res.status(200).json({ success: true, report: newReport });
@@ -262,7 +268,6 @@ router.get('/analytics', async (req, res) => {
       WitnessReport.find({}, 'submitted_at'),
     ]);
 
-    // Build hourly distribution (0-23)
     const hourlyCounts = new Array(24).fill(0);
     allAlerts.forEach((a) => {
       const hour = new Date(a.server_received_at).getHours();
@@ -289,6 +294,7 @@ router.get('/analytics', async (req, res) => {
     return res.status(500).json({ success: false, message: 'Server error' });
   }
 });
+
 async function sendPushToAllOperators(title, body, url) {
   try {
     const subscriptions = await PushSubscription.find();
@@ -300,7 +306,6 @@ async function sendPushToAllOperators(title, body, url) {
           { endpoint: sub.endpoint, keys: sub.keys },
           payload
         ).catch(async (err) => {
-          // Remove dead subscriptions (expired or unsubscribed)
           if (err.statusCode === 404 || err.statusCode === 410) {
             await PushSubscription.deleteOne({ endpoint: sub.endpoint });
           }
@@ -311,6 +316,7 @@ async function sendPushToAllOperators(title, body, url) {
     console.error('[PUSH] Error sending notifications:', err.message);
   }
 }
+
 router.patch('/alert/:id/location', async (req, res) => {
   try {
     const { coordinates } = req.body;

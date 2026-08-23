@@ -39,13 +39,24 @@ export default function Login() {
 
   return (
     <div className="login-page">
+      <div className="login-bg-glow"></div>
       <div className="login-card">
-        <div className="login-header">
-          <h1>Security Dashboard Login</h1>
-          <p>Rivers State University — Authorized Personnel Only</p>
+        <div className="login-logo">
+          <div className="login-logo-icon">🛡</div>
+          <div>
+            <h1>Security Dashboard</h1>
+            <p>Authorized Personnel Only</p>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <div className="login-divider"></div>
+
+        <div className="login-alert-info">
+          🔒 This dashboard is restricted to licensed RSU security operators.
+          Unauthorized access is prohibited.
+        </div>
+
+        <form className="login-form" onSubmit={handleSubmit}>
           <div className="login-field">
             <label>Username</label>
             <input
@@ -55,6 +66,7 @@ export default function Login() {
               placeholder="Enter your username"
               required
               autoFocus
+              autoComplete="username"
             />
           </div>
 
@@ -66,15 +78,20 @@ export default function Login() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
               required
+              autoComplete="current-password"
             />
           </div>
 
-          {error && <div className="login-error">{error}</div>}
+          {error && <div className="login-error">⚠ {error}</div>}
 
-          <button type="submit" className="login-submit" disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign In'}
+          <button type="submit" className="login-btn" disabled={loading}>
+            {loading ? 'Signing in...' : 'Access Dashboard'}
           </button>
         </form>
+
+        <div className="login-footer">
+          Smart Panic Alert System · Rivers State University · {new Date().getFullYear()}
+        </div>
       </div>
     </div>
   );

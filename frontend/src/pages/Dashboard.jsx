@@ -294,8 +294,8 @@ export default function Dashboard() {
   }, [pushPermission]);
 
   useEffect(() => {
-    const hasUnresolvedAlert = alerts.some((a) => !a.acknowledged || !a.resolution_status || a.resolution_status === 'Pending');
-
+  const hasUnresolvedAlert = alerts.some((a) => !a.acknowledged);
+  
     if (hasUnresolvedAlert) {
       if (!sirenIntervalRef.current) {
         sirenIntervalRef.current = setInterval(() => {

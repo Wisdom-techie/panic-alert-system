@@ -3,7 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const { verifyToken } = require('./authRoutes');
+
 
 const JWT_SECRET = process.env.JWT_SECRET || 'rsu-panic-alert-secret-change-this';
 

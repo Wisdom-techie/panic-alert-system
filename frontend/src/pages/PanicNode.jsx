@@ -178,15 +178,14 @@ function getLocation() {
 
 export default function PanicNode() {
   const [selectedDevice, setSelectedDevice] = useState(ALL_DEVICES[0]);
-  const [activeType, setActiveType] = useState(null); // which button is currently sending
-  const [sentType, setSentType] = useState(null); // which button just succeeded
+  const [activeType, setActiveType] = useState(null);
+  const [sentType, setSentType] = useState(null);
   const [errorType, setErrorType] = useState(null);
   const [lastSent, setLastSent] = useState(null);
   const [geoStatus, setGeoStatus] = useState('idle');
   const [recentAlerts, setRecentAlerts] = useState([]);
   const fetchedOnce = useRef(false);
 
-  // Witness report state
   const [showReportForm, setShowReportForm] = useState(false);
   const [reportType, setReportType] = useState(WITNESS_TYPES[0]);
   const [reportLocation, setReportLocation] = useState(ALL_DEVICES[0].label);
@@ -194,7 +193,7 @@ export default function PanicNode() {
   const [reportFile, setReportFile] = useState(null);
   const [reportAnonymous, setReportAnonymous] = useState(false);
   const [reportContact, setReportContact] = useState('');
-  const [reportStatus, setReportStatus] = useState('idle'); // idle | sending | success | error
+  const [reportStatus, setReportStatus] = useState('idle');
 
   if (!fetchedOnce.current) {
     fetchedOnce.current = true;
@@ -205,13 +204,13 @@ export default function PanicNode() {
   }
 
   async function handleEmergency(alertType) {
-    if (activeType) return; // already sending something
+    if (activeType) return;
     setActiveType(alertType);
     setErrorType(null);
     setGeoStatus('acquiring');
 
-    const coords = await getLocation();
-    setGeoStatus(coords ? 'acquired' : 'denied');
+    // Start GPS capture but DO NOT wait for it — fire the alert immediately
+    const geoPromise = getLocation();
 
     try {
       const res = await fetch(`${API_URL}/api/alert`, {
@@ -221,11 +220,12 @@ export default function PanicNode() {
           device_id: selectedDevice.id,
           location_label: selectedDevice.label,
           timestamp_ms: Date.now(),
-          coordinates: coords,
+          coordinates: null,
           alert_type: alertType,
         }),
       });
       const data = await res.json();
+
       if (res.ok && data.success) {
         setSentType(alertType);
         setLastSent(new Date().toLocaleTimeString());
@@ -234,6 +234,18 @@ export default function PanicNode() {
           .then((d) => { if (d.success) setRecentAlerts(d.alerts); })
           .catch(() => {});
         setTimeout(() => { setActiveType(null); setSentType(null); setGeoStatus('idle'); }, 3000);
+
+        // Once GPS resolves (fast or slow), patch the alert with coordinates in the background
+        geoPromise.then((coords) => {
+          setGeoStatus(coords ? 'acquired' : 'denied');
+          if (coords && data.alert?._id) {
+            fetch(`${API_URL}/api/alert/${data.alert._id}/location`, {
+              method: 'PATCH',
+              headers: HEADERS,
+              body: JSON.stringify({ coordinates: coords }),
+            }).catch(() => {});
+          }
+        });
       } else {
         setErrorType(alertType);
         setTimeout(() => { setActiveType(null); setErrorType(null); setGeoStatus('idle'); }, 3000);
@@ -311,7 +323,6 @@ export default function PanicNode() {
 
       <main className="pn-main-v2">
 
-        {/* DEVICE SELECTOR */}
         <div className="pn-card">
           <div className="pn-card-header">
             <div className="pn-card-title">Select Node Location</div>
@@ -352,7 +363,6 @@ export default function PanicNode() {
           </div>
         </div>
 
-        {/* EMERGENCY BUTTON GRID */}
         <div className="pn-card">
           <div className="pn-card-header">
             <div className="pn-card-title">Select Emergency Type</div>
@@ -396,7 +406,6 @@ export default function PanicNode() {
           )}
         </div>
 
-        {/* RECENT ALERTS */}
         <div className="pn-recent-card">
           <div className="pn-recent-title">Recent Alerts</div>
           {recentAlerts.length === 0 ? (
@@ -417,7 +426,6 @@ export default function PanicNode() {
           )}
         </div>
 
-        {/* WITNESS REPORT TOGGLE */}
         <div className="pn-witness-toggle-card">
           <div className="pn-witness-toggle-info">
             <div className="pn-card-title">Witness Report</div>

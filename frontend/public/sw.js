@@ -1,8 +1,8 @@
-const CACHE_NAME = 'rsu-panic-alert-v2'; // bumped version forces cache refresh
+const CACHE_NAME = 'rsu-panic-alert-v3'; // bump this number on every future deploy that breaks things
 const urlsToCache = ['/'];
 
 self.addEventListener('install', (event) => {
-  self.skipWaiting(); // activate new SW immediately
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(urlsToCache))
   );
@@ -16,17 +16,17 @@ self.addEventListener('activate', (event) => {
           if (name !== CACHE_NAME) return caches.delete(name);
         })
       )
-    ).then(() => self.clients.claim()) // take control of open pages immediately
+    ).then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', (event) => {
-  // Never cache API calls or JS/CSS module files - always fetch fresh
   if (
     event.request.url.includes('/api/') ||
     event.request.url.includes('/src/') ||
     event.request.url.includes('.js') ||
-    event.request.url.includes('.jsx')
+    event.request.url.includes('.jsx') ||
+    event.request.url.includes('.css')
   ) {
     event.respondWith(fetch(event.request));
     return;
@@ -36,6 +36,7 @@ self.addEventListener('fetch', (event) => {
     caches.match(event.request).then((response) => response || fetch(event.request))
   );
 });
+
 self.addEventListener('push', (event) => {
   let data = { title: 'RSU Panic Alert', body: 'New alert received', url: '/dashboard' };
   try {

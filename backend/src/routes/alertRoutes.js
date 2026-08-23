@@ -289,5 +289,25 @@ async function sendPushToAllOperators(title, body, url) {
     console.error('[PUSH] Error sending notifications:', err.message);
   }
 }
+router.patch('/alert/:id/location', async (req, res) => {
+  try {
+    const { coordinates } = req.body;
+    const updated = await AlertEvent.findByIdAndUpdate(
+      req.params.id,
+      { coordinates },
+      { new: true }
+    );
+    if (!updated) {
+      return res.status(404).json({ success: false, message: 'Alert not found' });
+    }
+
+    broadcast({ type: 'ALERT_LOCATION_UPDATED', alertId: updated._id, coordinates });
+
+    return res.status(200).json({ success: true, alert: updated });
+  } catch (error) {
+    console.error('[PATCH /alert/:id/location]', error.message);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
 
 module.exports = router;

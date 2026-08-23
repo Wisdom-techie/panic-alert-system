@@ -232,6 +232,11 @@ export default function Dashboard() {
         prev.map((r) => r._id === data.reportId ? { ...r, reviewed: true, reviewed_at: data.reviewed_at } : r)
       );
     }
+    if (data.type === 'ALERT_LOCATION_UPDATED') {
+  setAlerts((prev) =>
+    prev.map((a) => a._id === data.alertId ? { ...a, coordinates: data.coordinates } : a)
+  );
+}
   }
 
   const { connected } = useWebSocket(handleWsMessage);

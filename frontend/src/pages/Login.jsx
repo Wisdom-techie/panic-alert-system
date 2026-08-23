@@ -1,11 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { saveAuth } from '../utils/auth';
 import './Login.css';
 
-const CREDENTIALS = {
-  username: 'rsu-security',
-  password: 'rsu@panic2026',
-};
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -14,55 +12,49 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  function handleLogin(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    setLoading(true);
     setError('');
+    setLoading(true);
 
-    setTimeout(() => {
-      if (
-        username.trim() === CREDENTIALS.username &&
-        password === CREDENTIALS.password
-      ) {
-        sessionStorage.setItem('rsu_security_auth', 'true');
+    try {
+      const res = await fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        saveAuth(data.token, data.user);
         navigate('/dashboard');
       } else {
-        setError('Invalid credentials. Access denied.');
-        setLoading(false);
+        setError(data.message || 'Invalid credentials');
       }
-    }, 800);
+    } catch (err) {
+      setError('Connection error. Try again.');
+    }
+    setLoading(false);
   }
 
   return (
     <div className="login-page">
-      <div className="login-bg-glow"></div>
-
       <div className="login-card">
-        <div className="login-logo">
-          <span className="login-logo-icon">🛡</span>
-          <div>
-            <h1>RSU Security Portal</h1>
-            <p>Authorized Personnel Only</p>
-          </div>
+        <div className="login-header">
+          <h1>Security Dashboard Login</h1>
+          <p>Rivers State University — Authorized Personnel Only</p>
         </div>
 
-        <div className="login-divider"></div>
-
-        <div className="login-alert-info">
-          <span>🔒</span>
-          <span>This dashboard is restricted to licensed RSU security operators. Unauthorized access is prohibited.</span>
-        </div>
-
-        <form className="login-form" onSubmit={handleLogin}>
+        <form onSubmit={handleSubmit}>
           <div className="login-field">
             <label>Username</label>
             <input
               type="text"
-              placeholder="Enter your username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              autoComplete="username"
+              placeholder="Enter your username"
               required
+              autoFocus
             />
           </div>
 
@@ -70,29 +62,20 @@ export default function Login() {
             <label>Password</label>
             <input
               type="password"
-              placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
+              placeholder="Enter your password"
               required
             />
           </div>
 
-          {error && (
-            <div className="login-error">
-              ⚠ {error}
-            </div>
-          )}
+          {error && <div className="login-error">{error}</div>}
 
-          <button type="submit" className="login-btn" disabled={loading}>
-            {loading ? 'Verifying...' : 'Access Dashboard'}
+          <button type="submit" className="login-submit" disabled={loading}>
+            {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-
-        <div className="login-footer">
-          Smart Panic Alert System · Rivers State University · {new Date().getFullYear()}
-        </div>
       </div>
     </div>
   );
-}  
+}

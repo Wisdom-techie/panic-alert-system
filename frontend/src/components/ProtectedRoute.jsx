@@ -1,11 +1,9 @@
 import { Navigate } from 'react-router-dom';
+import { isLoggedIn } from '../utils/auth';
 
 export default function ProtectedRoute({ children }) {
-  const isAuthenticated = sessionStorage.getItem('rsu_security_auth') === 'true';
-
-  if (!isAuthenticated) {
+  if (!isLoggedIn()) {
     return <Navigate to="/login" replace />;
   }
-
   return children;
 }

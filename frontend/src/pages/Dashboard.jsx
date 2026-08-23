@@ -3,15 +3,12 @@ import { Link } from 'react-router-dom';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { subscribeToPushNotifications } from '../utils/pushNotifications';
 import { getStoredTheme, toggleTheme } from '../utils/theme';
+import { authHeaders, getUser, isMaster, clearAuth } from '../utils/auth';
 import './Dashboard.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const ALERT_TYPES = ['All', 'Robbery', 'Assault', 'Medical', 'Accident', 'Fire', 'Suspicious'];
 const RESOLUTION_STATUSES = ['Resolved', 'False Alarm', 'Escalated'];
-const HEADERS = {
-  'Content-Type': 'application/json',
-  'ngrok-skip-browser-warning': 'true',
-};
 
 const TYPE_COLORS = {
   Robbery: 'red',
@@ -118,6 +115,14 @@ const Icon = {
       <line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
     </svg>
   ),
+  Users: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  ),
 };
 
 function playAlertSound(audioCtxRef, isReport) {
@@ -205,11 +210,12 @@ export default function Dashboard() {
   const [pushPermission, setPushPermission] = useState(
     typeof Notification !== 'undefined' ? Notification.permission : 'default'
   );
-  const [reportPanelAlert, setReportPanelAlert] = useState(null); // the alert being reported on
+  const [reportPanelAlert, setReportPanelAlert] = useState(null);
   const [resStatus, setResStatus] = useState(RESOLUTION_STATUSES[0]);
   const [resNotes, setResNotes] = useState('');
   const [resSubmitting, setResSubmitting] = useState(false);
 
+  const currentUser = getUser();
   const audioCtxRef = useRef(null);
   const seenAlertIds = useRef(new Set());
   const seenReportIds = useRef(new Set());
@@ -233,7 +239,7 @@ export default function Dashboard() {
     }
     if (data.type === 'ALERT_ACKNOWLEDGED') {
       setAlerts((prev) =>
-        prev.map((a) => a._id === data.alertId ? { ...a, acknowledged: true, acknowledged_at: data.acknowledged_at } : a)
+        prev.map((a) => a._id === data.alertId ? { ...a, acknowledged: true, acknowledged_at: data.acknowledged_at, acknowledged_by: data.acknowledged_by } : a)
       );
     }
     if (data.type === 'ALERT_LOCATION_UPDATED') {
@@ -265,8 +271,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     Promise.all([
-      fetch(`${API_URL}/api/alerts`, { headers: HEADERS }).then((r) => r.json()),
-      fetch(`${API_URL}/api/witness-reports`, { headers: HEADERS }).then((r) => r.json()),
+      fetch(`${API_URL}/api/alerts`, { headers: { 'ngrok-skip-browser-warning': 'true' } }).then((r) => r.json()),
+      fetch(`${API_URL}/api/witness-reports`, { headers: { 'ngrok-skip-browser-warning': 'true' } }).then((r) => r.json()),
     ]).then(([alertData, reportData]) => {
       if (alertData.success) {
         setAlerts(alertData.alerts);
@@ -288,7 +294,6 @@ export default function Dashboard() {
   }, [pushPermission]);
 
   useEffect(() => {
-    // Siren now stays active until an alert is BOTH acknowledged AND has a filed report
     const hasUnresolvedAlert = alerts.some((a) => !a.acknowledged || !a.resolution_status || a.resolution_status === 'Pending');
 
     if (hasUnresolvedAlert) {
@@ -326,21 +331,34 @@ export default function Dashboard() {
     setTheme(next);
   }
 
+  function handleLogout() {
+    clearAuth();
+    window.location.href = '/login';
+  }
+
   async function handleAcknowledge(id) {
     try {
-      const res = await fetch(`${API_URL}/api/alert/${id}/acknowledge`, { method: 'POST', headers: HEADERS });
+      const res = await fetch(`${API_URL}/api/alert/${id}/acknowledge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      });
       const d = await res.json();
       if (d.success) {
         setAlerts((prev) =>
-          prev.map((a) => a._id === id ? { ...a, acknowledged: true, acknowledged_at: d.alert.acknowledged_at } : a)
+          prev.map((a) => a._id === id ? { ...a, acknowledged: true, acknowledged_at: d.alert.acknowledged_at, acknowledged_by: d.alert.acknowledged_by } : a)
         );
+      } else if (res.status === 401) {
+        handleLogout();
       }
     } catch (e) { console.error(e); }
   }
 
   async function handleReview(id) {
     try {
-      const res = await fetch(`${API_URL}/api/witness-report/${id}/review`, { method: 'POST', headers: HEADERS });
+      const res = await fetch(`${API_URL}/api/witness-report/${id}/review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+      });
       const d = await res.json();
       if (d.success) {
         setReports((prev) =>
@@ -368,11 +386,10 @@ export default function Dashboard() {
     try {
       const res = await fetch(`${API_URL}/api/alert/${reportPanelAlert._id}/resolve`, {
         method: 'POST',
-        headers: HEADERS,
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({
           resolution_status: resStatus,
           resolution_notes: resNotes.trim(),
-          resolved_by: 'RSU Security Operator',
         }),
       });
       const d = await res.json();
@@ -381,6 +398,8 @@ export default function Dashboard() {
           prev.map((a) => a._id === reportPanelAlert._id ? { ...a, ...d.alert } : a)
         );
         setReportPanelAlert(null);
+      } else if (res.status === 401) {
+        handleLogout();
       }
     } catch (e) { console.error(e); }
     setResSubmitting(false);
@@ -400,19 +419,24 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="db-header-right">
+          <div className="db-user-chip">
+            {currentUser?.full_name} <span className="db-user-role">({currentUser?.role})</span>
+          </div>
           <div className={`db-ws-badge ${connected ? 'connected' : 'disconnected'}`}>
             <span className="db-ws-dot"></span>
             {connected ? 'Live Feed Active' : 'Reconnecting...'}
           </div>
           <Link to="/dashboard/analytics" className="db-node-link">Analytics →</Link>
           <Link to="/" className="db-node-link">← Panic Node</Link>
+          {isMaster() && (
+            <Link to="/dashboard/admin" className="db-node-link">
+              <Icon.Users /> Manage Staff
+            </Link>
+          )}
           <button className="db-theme-btn" onClick={handleThemeToggle}>
             {theme === 'dark' ? <><Icon.Sun /> Light</> : <><Icon.Moon /> Dark</>}
           </button>
-          <button
-            className="db-logout-btn"
-            onClick={() => { sessionStorage.removeItem('rsu_security_auth'); window.location.href = '/login'; }}
-          >
+          <button className="db-logout-btn" onClick={handleLogout}>
             Logout
           </button>
         </div>
@@ -536,6 +560,7 @@ export default function Dashboard() {
                     <th>GPS</th>
                     <th>Time</th>
                     <th>Status</th>
+                    <th>Ack. By</th>
                     <th>Resolution</th>
                     <th>Action</th>
                   </tr>
@@ -558,6 +583,7 @@ export default function Dashboard() {
                             ? <span className="db-status-acked"><Icon.CheckSmall /> Acknowledged</span>
                             : <span className="db-status-active"><Icon.Alert /> Active</span>}
                         </td>
+                        <td style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{alert.acknowledged_by || '—'}</td>
                         <td><ResolutionBadge status={alert.resolution_status} /></td>
                         <td>
                           {!alert.acknowledged ? (
@@ -634,7 +660,6 @@ export default function Dashboard() {
         Smart Panic Alert System — Computer Engineering Final Year Project · Rivers State University · {new Date().getFullYear()}
       </footer>
 
-      {/* SLIDE-IN INCIDENT REPORT PANEL */}
       {reportPanelAlert && (
         <>
           <div className="db-panel-overlay" onClick={closeReportPanel}></div>
@@ -657,6 +682,10 @@ export default function Dashboard() {
               <div className="db-panel-field-static">
                 <span className="db-panel-label">Alert Time</span>
                 <span>{new Date(reportPanelAlert.server_received_at).toLocaleString()}</span>
+              </div>
+              <div className="db-panel-field-static">
+                <span className="db-panel-label">Acknowledged By</span>
+                <span>{reportPanelAlert.acknowledged_by || '—'}</span>
               </div>
 
               {reportPanelAlert.resolution_status && reportPanelAlert.resolution_status !== 'Pending' ? (

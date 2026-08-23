@@ -902,3 +902,15 @@
   border-radius: 8px;
 }
 .db-panel-notes-view p { margin-top: 6px; font-size: 0.85rem; line-height: 1.5; color: var(--text-primary); }
+.db-user-chip {
+  padding: 6px 14px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 0.78rem;
+  color: var(--text-primary);
+}
+.db-user-role {
+  color: var(--text-secondary);
+  text-transform: capitalize;
+}

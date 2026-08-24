@@ -164,6 +164,7 @@ export default function AdminPanel() {
                   <th>Role</th>
                   <th>Status</th>
                   <th>Created</th>
+                  <th>Last Seen</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -183,6 +184,9 @@ export default function AdminPanel() {
                       </span>
                     </td>
                     <td className="admin-mono">{new Date(u.created_at).toLocaleDateString()}</td>
+                    <td className="admin-mono">
+                      {u.last_login_at ? new Date(u.last_login_at).toLocaleString() : 'Never logged in'}
+                    </td>
                     <td className="admin-actions">
                       <button className="admin-toggle-btn" onClick={() => handleToggleActive(u._id)}>
                         {u.active ? 'Deactivate' : 'Activate'}

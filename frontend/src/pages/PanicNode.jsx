@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { getStoredTheme, toggleTheme } from '../utils/theme';
 import './PanicNode.css';
 
 
@@ -184,6 +185,7 @@ export default function PanicNode() {
   const [lastSent, setLastSent] = useState(null);
   const [geoStatus, setGeoStatus] = useState('idle');
   const [recentAlerts, setRecentAlerts] = useState([]);
+  const [theme, setTheme] = useState(getStoredTheme());
   const fetchedOnce = useRef(false);
 
   const [showReportForm, setShowReportForm] = useState(false);
@@ -203,13 +205,16 @@ export default function PanicNode() {
       .catch(() => {});
   }
 
+  function handleThemeToggle() {
+    setTheme(toggleTheme());
+  }
+
   async function handleEmergency(alertType) {
     if (activeType) return;
     setActiveType(alertType);
     setErrorType(null);
     setGeoStatus('acquiring');
 
-    // Start GPS capture but DO NOT wait for it — fire the alert immediately
     const geoPromise = getLocation();
 
     try {
@@ -235,7 +240,6 @@ export default function PanicNode() {
           .catch(() => {});
         setTimeout(() => { setActiveType(null); setSentType(null); setGeoStatus('idle'); }, 3000);
 
-        // Once GPS resolves (fast or slow), patch the alert with coordinates in the background
         geoPromise.then((coords) => {
           setGeoStatus(coords ? 'acquired' : 'denied');
           if (coords && data.alert?._id) {
@@ -317,6 +321,9 @@ export default function PanicNode() {
             <span className="pn-status-dot"></span>
             System Online
           </div>
+          <button className="pn-theme-btn" onClick={handleThemeToggle}>
+            {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
+          </button>
           <Link to="/login" className="pn-dash-link">Security Dashboard →</Link>
         </div>
       </header>

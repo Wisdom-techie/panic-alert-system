@@ -100,6 +100,28 @@ router.get('/alerts', async (req, res) => {
   }
 });
 
+router.post('/alert/:id/escalate', async (req, res) => {
+  try {
+    const alert = await AlertEvent.findById(req.params.id);
+    if (!alert || alert.acknowledged) {
+      return res.status(200).json({ success: true, skipped: true });
+    }
+
+    sendPushToAllOperators(
+      `⏰ NO RESPONSE — ${alert.alert_type.toUpperCase()}`,
+      `Still unacknowledged after 90s: ${alert.device_id} — ${alert.location_label}`,
+      '/dashboard'
+    );
+
+    broadcast({ type: 'ALERT_ESCALATED', alertId: alert._id });
+
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('[POST /alert/:id/escalate]', error.message);
+    return res.status(500).json({ success: false });
+  }
+});
+
 // POST /api/alert/:id/acknowledge  (now requires login, tags the operator)
 router.post('/alert/:id/acknowledge', verifyToken, async (req, res) => {
   try {
@@ -250,7 +272,7 @@ router.post('/witness-report/:id/review', async (req, res) => {
 // GET /api/analytics
 router.get('/analytics', async (req, res) => {
   try {
-    const [alertsByLocation, alertsByType, reportsByType, allAlerts, allReports] = await Promise.all([
+    const [alertsByLocation, alertsByType, reportsByType, allAlerts, allReports, ackedAlerts] = await Promise.all([
       AlertEvent.aggregate([
         { $group: { _id: '$location_label', count: { $sum: 1 } } },
         { $sort: { count: -1 } },
@@ -266,6 +288,7 @@ router.get('/analytics', async (req, res) => {
       ]),
       AlertEvent.find({}, 'server_received_at'),
       WitnessReport.find({}, 'submitted_at'),
+      AlertEvent.find({ acknowledged: true }, 'alert_type server_received_at acknowledged_at'),
     ]);
 
     const hourlyCounts = new Array(24).fill(0);
@@ -280,6 +303,26 @@ router.get('/analytics', async (req, res) => {
 
     const byHour = hourlyCounts.map((count, hour) => ({ hour: `${hour}:00`, count }));
 
+    // Average response time (seconds) overall and per alert type
+    const responseTimes = ackedAlerts.map((a) => ({
+      type: a.alert_type,
+      seconds: (new Date(a.acknowledged_at) - new Date(a.server_received_at)) / 1000,
+    })).filter((r) => r.seconds >= 0 && r.seconds < 3600);
+
+    const avgResponseSeconds = responseTimes.length
+      ? Math.round(responseTimes.reduce((sum, r) => sum + r.seconds, 0) / responseTimes.length)
+      : null;
+
+    const byTypeMap = {};
+    responseTimes.forEach((r) => {
+      if (!byTypeMap[r.type]) byTypeMap[r.type] = [];
+      byTypeMap[r.type].push(r.seconds);
+    });
+    const avgResponseByType = Object.entries(byTypeMap).map(([type, times]) => ({
+      type,
+      avgSeconds: Math.round(times.reduce((a, b) => a + b, 0) / times.length),
+    }));
+
     return res.status(200).json({
       success: true,
       totalAlerts: allAlerts.length,
@@ -288,6 +331,8 @@ router.get('/analytics', async (req, res) => {
       alertsByType,
       reportsByType,
       byHour,
+      avgResponseSeconds,
+      avgResponseByType,
     });
   } catch (error) {
     console.error('[GET /analytics]', error.message);

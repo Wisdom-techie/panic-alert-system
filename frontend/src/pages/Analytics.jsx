@@ -19,6 +19,14 @@ const TYPE_COLORS = {
   Other: '#546e7a',
 };
 
+function formatSeconds(s) {
+  if (s == null) return '—';
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  const rem = s % 60;
+  return `${m}m ${rem}s`;
+}
+
 export default function Analytics() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -79,6 +87,11 @@ export default function Analytics() {
 
   const topZones = [...data.alertsByLocation].slice(0, 5);
 
+  const responseByTypeData = (data.avgResponseByType || []).map((d) => ({
+    name: d.type,
+    seconds: d.avgSeconds,
+  }));
+
   return (
     <div className="an-page">
       <header className="an-header">
@@ -104,6 +117,10 @@ export default function Analytics() {
         <div className="an-summary-card">
           <div className="an-summary-number">{data.alertsByLocation.length}</div>
           <div className="an-summary-label">Locations With Incidents</div>
+        </div>
+        <div className="an-summary-card">
+          <div className="an-summary-number">{formatSeconds(data.avgResponseSeconds)}</div>
+          <div className="an-summary-label">Avg. Response Time</div>
         </div>
       </div>
 
@@ -185,6 +202,33 @@ export default function Analytics() {
                 </Pie>
                 <Tooltip contentStyle={{ backgroundColor: '#111620', border: '1px solid #1e2d45', borderRadius: '8px', fontSize: '12px' }} />
               </PieChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        {/* Response Time by Alert Type */}
+        <div className="an-card an-card-wide">
+          <div className="an-card-title">Average Response Time by Alert Type</div>
+          <div className="an-card-sub">Time between alert dispatch and operator acknowledgement</div>
+          {responseByTypeData.length === 0 ? (
+            <div className="an-no-data">No acknowledged alerts yet</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={responseByTypeData} margin={{ left: 0, right: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e2d45" vertical={false} />
+                <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} />
+                <YAxis
+                  stroke="#94a3b8"
+                  fontSize={11}
+                  allowDecimals={false}
+                  label={{ value: 'seconds', angle: -90, position: 'insideLeft', fill: '#94a3b8', fontSize: 11 }}
+                />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#111620', border: '1px solid #1e2d45', borderRadius: '8px', fontSize: '12px' }}
+                  formatter={(value) => [formatSeconds(value), 'Avg. Response']}
+                />
+                <Bar dataKey="seconds" fill="#22c55e" radius={[6, 6, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
           )}
         </div>

@@ -25,6 +25,9 @@ router.post('/auth/login', async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
+    user.last_login_at = new Date();
+    await user.save();
+
     const token = jwt.sign(
       { id: user._id, username: user.username, full_name: user.full_name, role: user.role },
       JWT_SECRET,

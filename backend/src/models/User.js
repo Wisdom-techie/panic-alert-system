@@ -7,6 +7,7 @@ const UserSchema = new mongoose.Schema({
   role: { type: String, enum: ['staff', 'master'], default: 'staff' },
   active: { type: Boolean, default: true },
   created_at: { type: Date, default: Date.now },
+  last_login_at: { type: Date, default: null },
 });
 
 module.exports = mongoose.model('User', UserSchema);

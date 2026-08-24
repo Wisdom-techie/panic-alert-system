@@ -9,6 +9,7 @@ import './Dashboard.css';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const ALERT_TYPES = ['All', 'Robbery', 'Assault', 'Medical', 'Accident', 'Fire', 'Suspicious'];
 const RESOLUTION_STATUSES = ['Resolved', 'False Alarm', 'Escalated'];
+const ESCALATION_THRESHOLD_MS = 90 * 1000;
 
 const TYPE_COLORS = {
   Robbery: 'red',
@@ -219,6 +220,7 @@ export default function Dashboard() {
   const audioCtxRef = useRef(null);
   const seenAlertIds = useRef(new Set());
   const seenReportIds = useRef(new Set());
+  const escalationNotified = useRef(new Set());
 
   const stats = {
     total: alerts.length,
@@ -250,6 +252,11 @@ export default function Dashboard() {
     if (data.type === 'ALERT_RESOLVED') {
       setAlerts((prev) =>
         prev.map((a) => a._id === data.alertId ? { ...a, ...data.alert } : a)
+      );
+    }
+    if (data.type === 'ALERT_ESCALATED') {
+      setAlerts((prev) =>
+        prev.map((a) => a._id === data.alertId ? { ...a, escalated: true } : a)
       );
     }
     if (data.type === 'NEW_WITNESS_REPORT') {
@@ -294,8 +301,8 @@ export default function Dashboard() {
   }, [pushPermission]);
 
   useEffect(() => {
-  const hasUnresolvedAlert = alerts.some((a) => !a.acknowledged);
-  
+    const hasUnresolvedAlert = alerts.some((a) => !a.acknowledged);
+
     if (hasUnresolvedAlert) {
       if (!sirenIntervalRef.current) {
         sirenIntervalRef.current = setInterval(() => {
@@ -315,6 +322,26 @@ export default function Dashboard() {
         sirenIntervalRef.current = null;
       }
     };
+  }, [alerts]);
+
+  // Escalation timer: checks every 15s for alerts unacknowledged past threshold
+  useEffect(() => {
+    const interval = setInterval(() => {
+      alerts.forEach((a) => {
+        if (!a.acknowledged && !escalationNotified.current.has(a._id)) {
+          const elapsed = Date.now() - new Date(a.server_received_at).getTime();
+          if (elapsed > ESCALATION_THRESHOLD_MS) {
+            escalationNotified.current.add(a._id);
+            fetch(`${API_URL}/api/alert/${a._id}/escalate`, {
+              method: 'POST',
+              headers: { 'ngrok-skip-browser-warning': 'true' },
+            }).catch(() => {});
+          }
+        }
+      });
+    }, 15000);
+
+    return () => clearInterval(interval);
   }, [alerts]);
 
   async function handleEnableNotifications() {
@@ -427,7 +454,9 @@ export default function Dashboard() {
             {connected ? 'Live Feed Active' : 'Reconnecting...'}
           </div>
           <Link to="/dashboard/analytics" className="db-node-link">Analytics →</Link>
-          <Link to="/" className="db-node-link">← Panic Node</Link>
+          <Link to="/" className="db-panic-node-btn">
+            <Icon.Shield /> Panic Node
+          </Link>
           {isMaster() && (
             <Link to="/dashboard/admin" className="db-node-link">
               <Icon.Users /> Manage Staff
@@ -569,7 +598,7 @@ export default function Dashboard() {
                   {filteredAlerts.map((alert, i) => {
                     const needsReport = alert.acknowledged && (!alert.resolution_status || alert.resolution_status === 'Pending');
                     return (
-                      <tr key={alert._id} className={alert.acknowledged ? 'row-acked' : 'row-active'}>
+                      <tr key={alert._id} className={`${alert.acknowledged ? 'row-acked' : 'row-active'} ${alert.escalated && !alert.acknowledged ? 'row-escalated' : ''}`}>
                         <td style={{ color: 'var(--text-muted)', fontFamily: 'JetBrains Mono, monospace', fontSize: '0.72rem' }}>{i + 1}</td>
                         <td><TypeBadge type={alert.alert_type} /></td>
                         <td><span className="db-device-tag">{alert.device_id}</span></td>
@@ -581,6 +610,8 @@ export default function Dashboard() {
                         <td>
                           {alert.acknowledged
                             ? <span className="db-status-acked"><Icon.CheckSmall /> Acknowledged</span>
+                            : alert.escalated
+                            ? <span className="db-status-escalated"><Icon.Alert /> No Response</span>
                             : <span className="db-status-active"><Icon.Alert /> Active</span>}
                         </td>
                         <td style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{alert.acknowledged_by || '—'}</td>

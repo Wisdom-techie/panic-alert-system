@@ -1,8 +1,8 @@
 import { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { getStoredTheme, toggleTheme } from '../utils/theme';
+import { getDeviceUUID } from '../utils/deviceId';
 import './PanicNode.css';
-
 
 const Icon = {
   Robbery: () => (
@@ -223,6 +223,7 @@ export default function PanicNode() {
         headers: HEADERS,
         body: JSON.stringify({
           device_id: selectedDevice.id,
+          device_uuid: getDeviceUUID(),
           location_label: selectedDevice.label,
           timestamp_ms: Date.now(),
           coordinates: null,
@@ -277,6 +278,7 @@ export default function PanicNode() {
         formData.append('reporter_contact', reportContact.trim());
       }
       formData.append('coordinates', JSON.stringify(coords || {}));
+      formData.append('device_uuid', getDeviceUUID());
       if (reportFile) formData.append('file', reportFile);
 
       const res = await fetch(`${API_URL}/api/witness-report`, {
@@ -396,8 +398,8 @@ export default function PanicNode() {
                   disabled={!!activeType}
                 >
                   <span className="pn-emg-icon">
-  {isSent ? <Icon.Check /> : isError ? <Icon.X /> : isActive ? <Icon.Loading /> : <e.Icon />}
-</span>
+                    {isSent ? <Icon.Check /> : isError ? <Icon.X /> : isActive ? <Icon.Loading /> : <e.Icon />}
+                  </span>
                   <span className="pn-emg-label">
                     {isSent ? 'SENT' : isError ? 'FAILED' : isActive ? 'SENDING' : e.label}
                   </span>

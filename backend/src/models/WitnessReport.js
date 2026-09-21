@@ -7,6 +7,7 @@ const WitnessReportSchema = new mongoose.Schema({
     enum: ['Robbery', 'Assault', 'Medical', 'Accident', 'Fire', 'Suspicious', 'Other'],
   },
   location_label: { type: String, required: true },
+  device_uuid: { type: String, default: null, index: true },
   description: { type: String, required: true },
   file_url: { type: String, default: null },
   anonymous: { type: Boolean, default: false },

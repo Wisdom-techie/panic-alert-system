@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
+const rateLimit = require('express-rate-limit');
 const AlertEvent = require('../models/AlertEvent');
 const WitnessReport = require('../models/WitnessReport');
 const { broadcast } = require('../websocket/wsManager');
@@ -11,10 +12,36 @@ const { verifyToken } = require('./authRoutes');
 
 const VALID_ALERT_TYPES = ['Robbery', 'Assault', 'Medical', 'Accident', 'Fire', 'Suspicious'];
 
+// Rate limiter: max 5 alerts per minute per device UUID (falls back to IP)
+const alertLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  keyGenerator: (req) => req.body?.device_uuid || req.ip,
+  message: {
+    success: false,
+    message: 'Too many alerts sent from this device. Please wait a moment before sending another.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Slightly looser limiter for witness reports (less time-critical, but still abusable)
+const reportLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 3,
+  keyGenerator: (req) => req.body?.device_uuid || req.ip,
+  message: {
+    success: false,
+    message: 'Too many reports submitted from this device. Please wait a moment.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // POST /api/alert
-router.post('/alert', async (req, res) => {
+router.post('/alert', alertLimiter, async (req, res) => {
   try {
-    const { device_id, location_label, timestamp_ms, coordinates, alert_type } = req.body;
+    const { device_id, device_uuid, location_label, timestamp_ms, coordinates, alert_type } = req.body;
 
     if (!device_id || !location_label || !timestamp_ms || !alert_type) {
       return res.status(400).json({ success: false, message: 'Missing required fields' });
@@ -26,6 +53,7 @@ router.post('/alert', async (req, res) => {
 
     const newAlert = await AlertEvent.create({
       device_id,
+      device_uuid: device_uuid || null,
       event_type: 'PANIC',
       alert_type,
       location_label,
@@ -40,7 +68,7 @@ router.post('/alert', async (req, res) => {
       `${device_id} — ${location_label}`,
       '/dashboard'
     );
-    console.log(`[ALERT] ${alert_type} - ${device_id} - ${location_label}`);
+    console.log(`[ALERT] ${alert_type} - ${device_id} - ${location_label} - uuid:${device_uuid || 'none'}`);
 
     return res.status(200).json({ success: true, alert: newAlert });
   } catch (error) {
@@ -49,7 +77,30 @@ router.post('/alert', async (req, res) => {
   }
 });
 
-// POST /api/alert/:id/resolve  (now requires login, tags the operator)
+// GET /api/device/:uuid/history — alert history for a single device (operator use)
+router.get('/device/:uuid/history', verifyToken, async (req, res) => {
+  try {
+    const uuid = String(req.params.uuid).trim();
+    const alerts = await AlertEvent.find({ device_uuid: uuid })
+      .sort({ server_received_at: -1 })
+      .limit(50);
+
+    const falseAlarms = alerts.filter((a) => a.resolution_status === 'False Alarm').length;
+
+    return res.status(200).json({
+      success: true,
+      device_uuid: uuid,
+      total: alerts.length,
+      falseAlarms,
+      alerts,
+    });
+  } catch (error) {
+    console.error('[GET /device/:uuid/history]', error.message);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// POST /api/alert/:id/resolve  (requires login, tags the operator)
 router.post('/alert/:id/resolve', verifyToken, async (req, res) => {
   try {
     const { resolution_status, resolution_notes } = req.body;
@@ -107,6 +158,9 @@ router.post('/alert/:id/escalate', async (req, res) => {
       return res.status(200).json({ success: true, skipped: true });
     }
 
+    alert.escalated = true;
+    await alert.save();
+
     sendPushToAllOperators(
       `⏰ NO RESPONSE — ${alert.alert_type.toUpperCase()}`,
       `Still unacknowledged after 90s: ${alert.device_id} — ${alert.location_label}`,
@@ -122,7 +176,7 @@ router.post('/alert/:id/escalate', async (req, res) => {
   }
 });
 
-// POST /api/alert/:id/acknowledge  (now requires login, tags the operator)
+// POST /api/alert/:id/acknowledge  (requires login, tags the operator)
 router.post('/alert/:id/acknowledge', verifyToken, async (req, res) => {
   try {
     const id = String(req.params.id).trim();
@@ -176,7 +230,7 @@ router.post('/push/subscribe', async (req, res) => {
 });
 
 // POST /api/witness-report (with optional file upload)
-router.post('/witness-report', upload.single('file'), async (req, res) => {
+router.post('/witness-report', reportLimiter, upload.single('file'), async (req, res) => {
   try {
     const {
       incident_type,
@@ -185,6 +239,7 @@ router.post('/witness-report', upload.single('file'), async (req, res) => {
       anonymous,
       reporter_contact,
       coordinates,
+      device_uuid,
     } = req.body;
 
     if (!incident_type || !location_label || !description) {
@@ -206,6 +261,7 @@ router.post('/witness-report', upload.single('file'), async (req, res) => {
       anonymous: anonymous === 'true' || anonymous === true,
       reporter_contact: reporter_contact || null,
       coordinates: parsedCoords,
+      device_uuid: device_uuid || null,
       submitted_at: new Date(),
     });
 
@@ -303,7 +359,6 @@ router.get('/analytics', async (req, res) => {
 
     const byHour = hourlyCounts.map((count, hour) => ({ hour: `${hour}:00`, count }));
 
-    // Average response time (seconds) overall and per alert type
     const responseTimes = ackedAlerts.map((a) => ({
       type: a.alert_type,
       seconds: (new Date(a.acknowledged_at) - new Date(a.server_received_at)) / 1000,

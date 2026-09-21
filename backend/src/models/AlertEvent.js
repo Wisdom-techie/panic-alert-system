@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const AlertEventSchema = new mongoose.Schema({
   device_id: { type: String, required: true },
+  device_uuid: { type: String, default: null, index: true },
   event_type: {
     type: String,
     required: true,
@@ -23,16 +24,17 @@ const AlertEventSchema = new mongoose.Schema({
   },
   acknowledged: { type: Boolean, default: false },
   acknowledged_at: { type: Date, default: null },
+  acknowledged_by: { type: String, default: '' },
 
   resolution_status: {
-  type: String,
-  enum: ['Pending', 'Resolved', 'False Alarm', 'Escalated'],
-  default: 'Pending',
-},
-resolution_notes: { type: String, default: '' },
-resolved_by: { type: String, default: '' },
-resolved_at: { type: Date, default: null },
-acknowledged_by: { type: String, default: '' },
+    type: String,
+    enum: ['Pending', 'Resolved', 'False Alarm', 'Escalated'],
+    default: 'Pending',
+  },
+  resolution_notes: { type: String, default: '' },
+  resolved_by: { type: String, default: '' },
+  resolved_at: { type: Date, default: null },
+  escalated: { type: Boolean, default: false },
 });
 
 module.exports = mongoose.model('AlertEvent', AlertEventSchema);

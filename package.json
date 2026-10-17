@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "express-mongo-sanitize": "^2.2.0",
+    "helmet": "^8.3.0"
+  }
+}

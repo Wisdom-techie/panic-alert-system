@@ -2,13 +2,22 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const rateLimit = require('express-rate-limit');
 const User = require('../models/User');
-
 
 const JWT_SECRET = process.env.JWT_SECRET || 'rsu-panic-alert-secret-change-this';
 
+// Rate limiter: max 10 login attempts per 15 minutes per IP
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many login attempts. Try again in 15 minutes.' },
+});
+
 // POST /api/auth/login
-router.post('/auth/login', async (req, res) => {
+router.post('/auth/login', loginLimiter, async (req, res) => {
   try {
     const { username, password } = req.body;
     if (!username || !password) {
@@ -34,9 +43,16 @@ router.post('/auth/login', async (req, res) => {
       { expiresIn: '12h' }
     );
 
+    // Set token as HttpOnly cookie — not accessible by JavaScript (XSS-safe)
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'Strict',
+      maxAge: 12 * 60 * 60 * 1000, // 12 hours in ms
+    });
+
     return res.status(200).json({
       success: true,
-      token,
       user: { id: user._id, username: user.username, full_name: user.full_name, role: user.role },
     });
   } catch (error) {
@@ -45,13 +61,33 @@ router.post('/auth/login', async (req, res) => {
   }
 });
 
-// Middleware to verify token
+// POST /api/auth/logout — clears the cookie
+router.post('/auth/logout', (req, res) => {
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'Strict',
+  });
+  return res.status(200).json({ success: true });
+});
+
+// Middleware to verify token — reads from HttpOnly cookie first, falls back to Bearer header
 function verifyToken(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  // Try cookie first
+  let token = req.cookies?.token;
+
+  // Fallback to Authorization header (for backwards compatibility during transition)
+  if (!token) {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    }
+  }
+
+  if (!token) {
     return res.status(401).json({ success: false, message: 'No token provided' });
   }
-  const token = authHeader.split(' ')[1];
+
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     req.user = decoded;

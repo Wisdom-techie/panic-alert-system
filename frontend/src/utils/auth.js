@@ -1,10 +1,13 @@
+const TOKEN_KEY = 'rsu_auth_token';
 const USER_KEY = 'rsu_auth_user';
 
-// Token is now in an HttpOnly cookie set by the server — not accessible from JS.
-// We only store the user object in sessionStorage for UI display purposes.
-
-export function saveAuth(user) {
+export function saveAuth(token, user) {
+  sessionStorage.setItem(TOKEN_KEY, token);
   sessionStorage.setItem(USER_KEY, JSON.stringify(user));
+}
+
+export function getToken() {
+  return sessionStorage.getItem(TOKEN_KEY);
 }
 
 export function getUser() {
@@ -13,13 +16,12 @@ export function getUser() {
 }
 
 export function clearAuth() {
+  sessionStorage.removeItem(TOKEN_KEY);
   sessionStorage.removeItem(USER_KEY);
 }
 
 export function isLoggedIn() {
-  // We infer login state from whether we have a stored user object.
-  // The real auth check is on the server via the HttpOnly cookie.
-  return !!getUser();
+  return !!getToken();
 }
 
 export function isMaster() {
@@ -27,8 +29,7 @@ export function isMaster() {
   return user?.role === 'master';
 }
 
-// authHeaders is no longer needed — the browser sends the HttpOnly cookie automatically.
-// Kept as a no-op export so existing imports don't break.
 export function authHeaders() {
-  return {};
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
